@@ -86,3 +86,109 @@ export async function fetchSectorRecommendations(
   }
   return res.json();
 }
+
+// --- Auth ---
+
+export interface AuthResult {
+  accessToken: string;
+  user: { id: string; email: string };
+}
+
+export async function registerAccount(email: string, password: string): Promise<AuthResult> {
+  const res = await fetch(`${API_URL}/api/v1/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not create account');
+  return res.json();
+}
+
+export async function loginAccount(email: string, password: string): Promise<AuthResult> {
+  const res = await fetch(`${API_URL}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not log in');
+  return res.json();
+}
+
+// --- Portfolio (paper trading) ---
+
+export interface Holding {
+  id: string;
+  ticker: string;
+  assetClass: AssetClass;
+  quantity: number;
+  averagePrice: number;
+  currentPrice: number;
+  unrealizedPnL: number;
+}
+
+export interface Portfolio {
+  id: string;
+  cashBalance: number;
+  totalValue: number;
+  holdings: Holding[];
+}
+
+export interface Trade {
+  id: string;
+  ticker: string;
+  assetClass: AssetClass;
+  side: 'BUY' | 'SELL';
+  quantity: number;
+  price: number;
+  executedAt: string;
+}
+
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
+export async function fetchPortfolio(token: string): Promise<Portfolio> {
+  const res = await fetch(`${API_URL}/api/v1/portfolio`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load portfolio');
+  return res.json();
+}
+
+export async function fetchTrades(token: string): Promise<Trade[]> {
+  const res = await fetch(`${API_URL}/api/v1/portfolio/trades`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load trade history');
+  return res.json();
+}
+
+export async function postTrade(
+  token: string,
+  params: { symbol: string; assetClass: AssetClass; side: 'BUY' | 'SELL'; quantity: number },
+): Promise<Portfolio> {
+  const res = await fetch(`${API_URL}/api/v1/portfolio/trade`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) return throwOnError(res, 'Trade failed');
+  return res.json();
+}
+
+// --- AI guide chat ---
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export async function chatWithAssistant(
+  messages: ChatMessage[],
+  context?: Record<string, unknown>,
+): Promise<string> {
+  const res = await fetch(`${API_URL}/api/v1/assistant/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, context }),
+  });
+  if (!res.ok) return throwOnError(res, 'Assistant request failed');
+  const body = (await res.json()) as { reply: string };
+  return body.reply;
+}

@@ -7,6 +7,9 @@ import { AssetSearchBar } from '@/components/AssetSearchBar';
 import { StrategySelectorPanel } from '@/components/StrategySelectorPanel';
 import { BrokerRecommendationWidget } from '@/components/BrokerRecommendationWidget';
 import { SectorRecommendationWidget } from '@/components/SectorRecommendationWidget';
+import { AuthPanel } from '@/components/AuthPanel';
+import { PortfolioPanel } from '@/components/PortfolioPanel';
+import { AssistantChat } from '@/components/AssistantChat';
 
 const TIMEFRAME = '1D';
 
@@ -23,6 +26,7 @@ export default function DashboardPage() {
           <span className="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800">
             Rules-based technical analysis — not financial advice
           </span>
+          <AuthPanel />
         </div>
       </header>
 
@@ -51,6 +55,11 @@ export default function DashboardPage() {
 
         <div className="space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-200">Practice Portfolio</h2>
+            <PortfolioPanel symbol={symbol} assetClass={assetClass} />
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 text-slate-200">Investment Strategy Customization</h2>
             <StrategySelectorPanel value={style} onChange={setStyle} />
           </div>
@@ -61,6 +70,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <AssistantChat symbol={symbol} assetClass={assetClass} timeframe={TIMEFRAME} />
     </main>
   );
 }

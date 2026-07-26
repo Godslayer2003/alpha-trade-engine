@@ -30,6 +30,13 @@ class CandleResponse(BaseModel):
     volume: float
 
 
+class QuoteResponse(BaseModel):
+    symbol: str
+    price: float
+    as_of: str
+    data_source: str
+
+
 class SignalRequest(BaseModel):
     symbol: str
     asset_class: AssetClass
@@ -80,6 +87,21 @@ async def get_candles(
     tf = _validate_timeframe(timeframe)
     candles = await _fetch_candles(symbol, asset_class, tf)
     return candles
+
+
+@app.get("/v1/market/quote", response_model=QuoteResponse)
+async def get_quote(
+    symbol: str = Query(..., min_length=1),
+    asset_class: AssetClass = Query(...),
+    timeframe: str = Query('1D'),
+):
+    # Paper-trading fill price: the latest available close from the same
+    # (delayed, free) sources powering the charts — not a live tick quote.
+    tf = _validate_timeframe(timeframe)
+    data_source = 'binance' if asset_class == 'CRYPTO' else 'yahoo-finance'
+    candles = await _fetch_candles(symbol, asset_class, tf)
+    last = candles[-1]
+    return QuoteResponse(symbol=symbol, price=last.close, as_of=last.time, data_source=data_source)
 
 
 @app.post("/v1/analysis/signal", response_model=SignalResponse)

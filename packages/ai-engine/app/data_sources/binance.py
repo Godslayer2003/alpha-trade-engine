@@ -4,7 +4,13 @@ import httpx
 
 from .common import Candle, MarketDataError, Timeframe
 
+# Binance.com blocks requests from US-geolocated IPs (451 Unavailable For
+# Legal Reasons) — hits in practice depending on which region a host deploys
+# to. Binance.US is a separate but API-shape-compatible exchange with no such
+# restriction, used as an automatic fallback rather than requiring a specific
+# deploy region.
 BASE_URL = 'https://api.binance.com/api/v3/klines'
+FALLBACK_URL = 'https://api.binance.us/api/v3/klines'
 
 _TIMEFRAME_PARAMS: dict[Timeframe, tuple[str, int]] = {
     '1H': ('1h', 200),
@@ -27,15 +33,19 @@ def _normalize_symbol(symbol: str) -> str:
     return f'{upper}USDT'
 
 
+async def _get(url: str, normalized: str, interval: str, limit: int) -> httpx.Response:
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        return await client.get(url, params={'symbol': normalized, 'interval': interval, 'limit': limit})
+
+
 async def fetch_ohlcv(symbol: str, timeframe: Timeframe) -> list[Candle]:
     interval, limit = _TIMEFRAME_PARAMS[timeframe]
     normalized = _normalize_symbol(symbol)
 
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            resp = await client.get(
-                BASE_URL, params={'symbol': normalized, 'interval': interval, 'limit': limit}
-            )
+        resp = await _get(BASE_URL, normalized, interval, limit)
+        if resp.status_code in (451, 403):
+            resp = await _get(FALLBACK_URL, normalized, interval, limit)
     except httpx.HTTPError as err:
         raise MarketDataError(f'Could not reach Binance: {err}', status_code=502) from err
 

@@ -20,3 +20,6 @@ npm-debug.log*
 Thumbs.db
 
 .turbo/
+
+.vercel
+.env*

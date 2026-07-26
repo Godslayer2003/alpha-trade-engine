@@ -3,6 +3,11 @@
 # on @alpha-trade/shared-types.
 FROM node:20-slim
 
+# Prisma's schema/query engine binaries need OpenSSL to be present in the
+# image — node:20-slim doesn't ship it, which makes both `prisma generate`
+# and `prisma migrate deploy` fail at runtime with a schema engine error.
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /repo
 COPY . .
 

@@ -1,0 +1,114 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum InvestmentStyle {
+  SWING_TRADING
+  WEEKEND_POSITIONING
+  LONG_TERM_HOLD
+  DAY_TRADING
+  OPTIONS_INCOME
+}
+
+enum DealType {
+  LONG
+  SHORT
+}
+
+enum RiskTolerance {
+  CONSERVATIVE
+  MODERATE
+  AGGRESSIVE
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  passwordHash   String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  profile        UserProfile?
+  strategies     UserStrategy[]
+  portfolios     Portfolio[]
+  brokerAccounts BrokerAccount[]
+  savedAnalyses  ChartAnalysis[]
+}
+
+model UserProfile {
+  id            String        @id @default(uuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  country       String
+  riskTolerance RiskTolerance @default(MODERATE)
+  capitalBase   Float         @default(10000.0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model UserStrategy {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  style            InvestmentStyle
+  preferredTickers String[]
+  maxRiskPerTrade  Float           @default(0.02)
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+}
+
+model ChartAnalysis {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticker            String
+  timeframe         String
+  detectedPattern   String
+  dealType          DealType
+  suggestedEntry    Float
+  suggestedStopLoss Float
+  suggestedTarget   Float
+  riskRewardRatio   Float
+  confidenceScore   Float
+  sector            String
+  rawChartUrl       String
+  createdAt         DateTime @default(now())
+}
+
+model BrokerAccount {
+  id               String            @id @default(uuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brokerName       String
+  accountNumberEnc String
+  isApiConnected   Boolean           @default(false)
+  supportedStyles  InvestmentStyle[]
+  createdAt        DateTime          @default(now())
+}
+
+model Portfolio {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  totalValue   Float     @default(0.0)
+  cashBalance  Float     @default(0.0)
+  holdings     Holding[]
+}
+
+model Holding {
+  id            String    @id @default(uuid())
+  portfolioId   String
+  portfolio     Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  ticker        String
+  quantity      Float
+  averagePrice  Float
+  currentPrice  Float
+  unrealizedPnL Float
+}

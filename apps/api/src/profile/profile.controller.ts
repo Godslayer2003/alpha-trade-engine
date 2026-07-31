@@ -4,8 +4,8 @@ import { CurrentUser, AuthenticatedUser } from '../auth/current-user.decorator';
 import { ProfileService } from './profile.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
-// ~700KB of base64 text, comfortably covering a 500KB image with encoding overhead.
-const MAX_PROFILE_PICTURE_LENGTH = 700_000;
+// ~14MB of base64 text, comfortably covering a 10MB image with encoding overhead.
+const MAX_PROFILE_PICTURE_LENGTH = 14_000_000;
 
 @Controller('api/v1/profile')
 @UseGuards(JwtAuthGuard)
@@ -20,7 +20,7 @@ export class ProfileController {
   @Put()
   updateProfile(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateProfileDto) {
     if (dto.profilePictureUrl && dto.profilePictureUrl.length > MAX_PROFILE_PICTURE_LENGTH) {
-      throw new BadRequestException('Profile picture is too large — please use an image under 500KB.');
+      throw new BadRequestException('Profile picture is too large — please use an image under 10MB.');
     }
     return this.profileService.upsertProfile(user.userId, dto);
   }

@@ -13,7 +13,7 @@ import {
   type Profile,
 } from '@/lib/api-client';
 
-const MAX_PICTURE_BYTES = 500 * 1024;
+const MAX_PICTURE_BYTES = 10 * 1024 * 1024;
 const CARD = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl';
 const INPUT = 'w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500';
 const LABEL = 'block text-sm text-slate-700 dark:text-slate-300 mb-1';
@@ -82,7 +82,7 @@ export default function SettingsPage() {
     if (!file) return;
     setPictureError(null);
     if (file.size > MAX_PICTURE_BYTES) {
-      setPictureError('Image is too large — please choose one under 500KB.');
+      setPictureError('Image is too large — please choose one under 10MB.');
       return;
     }
     const reader = new FileReader();
@@ -217,7 +217,7 @@ export default function SettingsPage() {
               )}
               <div>
                 <input type="file" accept="image/*" onChange={handlePictureChange} className="text-xs text-slate-600 dark:text-slate-400" />
-                <p className="text-[11px] text-slate-500 mt-1">Max 500KB.</p>
+                <p className="text-[11px] text-slate-500 mt-1">Max 10MB.</p>
                 {pictureError && <p className="text-xs text-rose-600 dark:text-rose-400">{pictureError}</p>}
               </div>
             </div>

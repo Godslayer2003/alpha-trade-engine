@@ -29,8 +29,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.bot = new Telegraf(token);
+    // Catches errors thrown by any handler below (e.g. an upstream timeout)
+    // so a failure always produces a reply instead of leaving the chat
+    // silently hanging, and so it's actually visible in the logs.
+    this.bot.catch((err, ctx) => {
+      this.logger.error(`Unhandled error in Telegram handler: ${(err as Error).message}`, (err as Error).stack);
+      ctx.reply('Something went wrong handling that — try again in a moment.').catch(() => {});
+    });
     this.registerHandlers(this.bot);
-    this.bot.launch();
+    this.bot.launch().catch((err) => {
+      this.logger.error(`Telegram bot failed to start: ${(err as Error).message}`);
+    });
     this.logger.log('Telegram bot started (long polling).');
   }
 

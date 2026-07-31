@@ -27,6 +27,7 @@ const MODEL = 'gemini-3.6-flash';
 // existing "resend full history" contract simple and provider-agnostic.
 // Capped to bound token usage on the free tier.
 const HISTORY_LIMIT = 6;
+const REQUEST_TIMEOUT_MS = 25_000;
 
 @Injectable()
 export class AssistantService {
@@ -44,15 +45,23 @@ export class AssistantService {
       .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n\n');
 
-    const interaction = await client.interactions.create({
-      model: MODEL,
-      system_instruction: SYSTEM_PROMPT + contextNote,
-      input: transcript,
-      // Structural backstop alongside the prompt instruction above: caps
-      // runaway long answers, and "low" thinking keeps a simple explainer
-      // widget fast instead of over-deliberating short questions.
-      generation_config: { max_output_tokens: 400, thinking_level: 'low' },
-    });
+    // The SDK call has no built-in timeout — without this, a slow/hung upstream
+    // request (e.g. rate-limit backoff) leaves the caller waiting indefinitely
+    // with no error surfaced (this is what caused Telegram's /ask to go silent).
+    const interaction = await Promise.race([
+      client.interactions.create({
+        model: MODEL,
+        system_instruction: SYSTEM_PROMPT + contextNote,
+        input: transcript,
+        // Structural backstop alongside the prompt instruction above: caps
+        // runaway long answers, and "low" thinking keeps a simple explainer
+        // widget fast instead of over-deliberating short questions.
+        generation_config: { max_output_tokens: 400, thinking_level: 'low' },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI guide request timed out')), REQUEST_TIMEOUT_MS),
+      ),
+    ]);
 
     return interaction.output_text ?? '';
   }

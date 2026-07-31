@@ -21,40 +21,45 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     private readonly assistantService: AssistantService,
   ) {}
 
+  private token: string | null = null;
+
   onModuleInit() {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
       this.logger.warn('TELEGRAM_BOT_TOKEN not set — Telegram bot disabled.');
       return;
     }
-
-    this.bot = new Telegraf(token);
-    // Catches errors thrown by any handler below (e.g. an upstream timeout)
-    // so a failure always produces a reply instead of leaving the chat
-    // silently hanging, and so it's actually visible in the logs.
-    this.bot.catch((err, ctx) => {
-      this.logger.error(`Unhandled error in Telegram handler: ${(err as Error).message}`, (err as Error).stack);
-      ctx.reply('Something went wrong handling that — try again in a moment.').catch(() => {});
-    });
-    this.registerHandlers(this.bot);
-    this.launchWithRetry(this.bot);
+    this.token = token;
+    this.launchWithRetry();
   }
 
   // Railway's rolling deploys briefly run the old and new containers at
   // once, so the new instance's first getUpdates call reliably 409s against
-  // the still-shutting-down old one — retry with backoff instead of giving
-  // up on a single race, or the bot silently never starts polling.
-  private launchWithRetry(bot: Telegraf, attempt = 1) {
+  // the still-shutting-down old one. A Telegraf instance whose launch()
+  // already rejected can't just be re-launched (its internal polling state
+  // is left inconsistent and a second launch() call on the same object
+  // silently hangs) — build a fresh Telegraf each attempt instead.
+  private launchWithRetry(attempt = 1) {
+    const bot = new Telegraf(this.token!);
+    bot.catch((err, ctx) => {
+      this.logger.error(`Unhandled error in Telegram handler: ${(err as Error).message}`, (err as Error).stack);
+      ctx.reply('Something went wrong handling that — try again in a moment.').catch(() => {});
+    });
+    this.registerHandlers(bot);
+
     bot
       .launch()
-      .then(() => this.logger.log('Telegram bot started (long polling).'))
+      .then(() => {
+        this.bot = bot;
+        this.logger.log('Telegram bot started (long polling).');
+      })
       .catch((err) => {
         this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
         if (attempt >= 5) {
           this.logger.error('Telegram bot failed to start after 5 attempts — giving up.');
           return;
         }
-        setTimeout(() => this.launchWithRetry(bot, attempt + 1), attempt * 5_000);
+        setTimeout(() => this.launchWithRetry(attempt + 1), attempt * 5_000);
       });
   }
 

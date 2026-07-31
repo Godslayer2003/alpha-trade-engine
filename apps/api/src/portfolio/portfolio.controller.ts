@@ -19,6 +19,11 @@ export class PortfolioController {
     return this.portfolioService.getTrades(user.userId);
   }
 
+  @Get('performance')
+  getPerformance(@CurrentUser() user: AuthenticatedUser) {
+    return this.portfolioService.getPerformance(user.userId);
+  }
+
   @Post('trade')
   executeTrade(@CurrentUser() user: AuthenticatedUser, @Body() dto: TradeDto) {
     return this.portfolioService.executeTrade(user.userId, dto);

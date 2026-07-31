@@ -42,6 +42,86 @@ export class PortfolioService {
     };
   }
 
+  // Reconstructs an approximate equity curve and realized-P&L stats purely
+  // from trade history + the current live portfolio value — no scheduled
+  // snapshot job exists, so between-trade granularity is stepped (valued at
+  // each trade's own fill price, not continuous intraday marks).
+  async getPerformance(userId: string) {
+    const portfolio = await this.findPortfolioOrThrow(userId);
+    const trades = await this.prisma.trade.findMany({
+      where: { portfolioId: portfolio.id },
+      orderBy: { executedAt: 'asc' },
+    });
+
+    // Reverse-engineer the starting cash from the current balance plus the
+    // net cash effect of every trade, rather than assuming a fixed constant.
+    const netCashFromTrades = trades.reduce(
+      (sum, t) => sum + (t.side === 'SELL' ? t.price * t.quantity : -t.price * t.quantity),
+      0,
+    );
+    const startingCash = portfolio.cashBalance - netCashFromTrades;
+
+    let runningCash = startingCash;
+    const positions = new Map<string, { qty: number; avgCost: number; lastPrice: number }>();
+    const equityCurve: { t: string; value: number }[] = [];
+    let realizedPnL = 0;
+    let sellCount = 0;
+    let wins = 0;
+    let bestTrade: { ticker: string; pnl: number; executedAt: string } | null = null;
+    let worstTrade: { ticker: string; pnl: number; executedAt: string } | null = null;
+
+    for (const trade of trades) {
+      const key = `${trade.ticker}:${trade.assetClass}`;
+      const existing = positions.get(key);
+
+      if (trade.side === 'BUY') {
+        runningCash -= trade.price * trade.quantity;
+        const prevQty = existing?.qty ?? 0;
+        const prevCost = existing?.avgCost ?? 0;
+        const newQty = prevQty + trade.quantity;
+        const newAvgCost = (prevCost * prevQty + trade.price * trade.quantity) / newQty;
+        positions.set(key, { qty: newQty, avgCost: newAvgCost, lastPrice: trade.price });
+      } else {
+        runningCash += trade.price * trade.quantity;
+        const avgCost = existing?.avgCost ?? trade.price;
+        const pnl = (trade.price - avgCost) * trade.quantity;
+        realizedPnL += pnl;
+        sellCount += 1;
+        if (pnl > 0) wins += 1;
+        const entry = { ticker: trade.ticker, pnl, executedAt: trade.executedAt.toISOString() };
+        if (!bestTrade || pnl > bestTrade.pnl) bestTrade = entry;
+        if (!worstTrade || pnl < worstTrade.pnl) worstTrade = entry;
+
+        const remainingQty = (existing?.qty ?? trade.quantity) - trade.quantity;
+        if (remainingQty > 0) {
+          positions.set(key, { qty: remainingQty, avgCost, lastPrice: trade.price });
+        } else {
+          positions.delete(key);
+        }
+      }
+
+      const positionsValue = Array.from(positions.values()).reduce(
+        (sum, p) => sum + p.qty * p.lastPrice,
+        0,
+      );
+      equityCurve.push({ t: trade.executedAt.toISOString(), value: runningCash + positionsValue });
+    }
+
+    const live = await this.getPortfolio(userId);
+    equityCurve.push({ t: new Date().toISOString(), value: live.totalValue });
+
+    return {
+      startingCash,
+      equityCurve,
+      totalReturnPct: startingCash > 0 ? ((live.totalValue - startingCash) / startingCash) * 100 : 0,
+      realizedPnL,
+      winRate: sellCount > 0 ? wins / sellCount : null,
+      tradeCount: trades.length,
+      bestTrade,
+      worstTrade,
+    };
+  }
+
   async getTrades(userId: string) {
     const portfolio = await this.findPortfolioOrThrow(userId);
     return this.prisma.trade.findMany({

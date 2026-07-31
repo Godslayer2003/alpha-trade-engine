@@ -18,6 +18,7 @@ enum InvestmentStyle {
 enum DealType {
   LONG
   SHORT
+  NEUTRAL
 }
 
 enum RiskTolerance {
@@ -49,30 +50,74 @@ model User {
   portfolios     Portfolio[]
   brokerAccounts BrokerAccount[]
   savedAnalyses  ChartAnalysis[]
+  recommendations Recommendation[]
+  telegramLink   TelegramLink?
 }
 
 model UserProfile {
-  id            String        @id @default(uuid())
-  userId        String        @unique
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName     String
-  lastName      String
-  country       String
-  riskTolerance RiskTolerance @default(MODERATE)
-  capitalBase   Float         @default(10000.0)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                String        @id @default(uuid())
+  userId            String        @unique
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName         String?
+  lastName          String?
+  country           String?
+  riskTolerance     RiskTolerance @default(MODERATE)
+  capitalBase       Float         @default(10000.0)
+  investmentGoal    String?
+  timeHorizonYears  Int?
+  experienceLevel   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 }
 
 model UserStrategy {
   id               String          @id @default(uuid())
   userId           String
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
   style            InvestmentStyle
   preferredTickers String[]
   maxRiskPerTrade  Float           @default(0.02)
+  notes            String?
   isActive         Boolean         @default(true)
   createdAt        DateTime        @default(now())
+}
+
+model Recommendation {
+  id           String          @id @default(uuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticker       String
+  assetClass   AssetClass
+  dealType     DealType
+  horizonStyle InvestmentStyle
+  entryPrice   Float
+  stopLoss     Float?
+  targetPrice  Float?
+  justification String
+  createdAt    DateTime        @default(now())
+}
+
+model AiReport {
+  id          String     @id @default(uuid())
+  symbol      String
+  assetClass  AssetClass
+  periodLabel String
+  content     String
+  grounded    Boolean    @default(false)
+  generatedAt DateTime   @default(now())
+
+  @@index([symbol, assetClass, periodLabel])
+}
+
+model TelegramLink {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId    String?   @unique
+  linkCode  String    @unique
+  linkedAt  DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model ChartAnalysis {

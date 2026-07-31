@@ -38,6 +38,16 @@ export function PortfolioPanel({ symbol, assetClass }: PortfolioPanelProps) {
     refresh();
   }, [refresh]);
 
+  // Keeps the practice portfolio's live prices/P&L in sync without a manual
+  // reload — polling rather than a websocket, since the underlying quotes
+  // themselves only update as fast as the candle data already backing the app.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') refresh();
+    }, 15_000);
+    return () => clearInterval(interval);
+  }, [refresh]);
+
   async function handleTrade(side: 'BUY' | 'SELL') {
     if (!token) return;
     const qty = Number(quantity);

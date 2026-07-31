@@ -105,4 +105,12 @@ export class SectorsService {
     if (!style) return companies;
     return companies.filter((c) => c.suitableStyles.includes(style));
   }
+
+  /** Flattens every sector's matrix and filters to companies suited to a style — used by the recommendation engine. */
+  recommendAcrossSectors(style: InvestmentStyle, limit = 5): CompanyRecommendation[] {
+    return Object.values(this.SECTOR_MATRIX)
+      .flat()
+      .filter((c) => c.suitableStyles.includes(style))
+      .slice(0, limit);
+  }
 }

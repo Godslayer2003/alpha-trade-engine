@@ -8,6 +8,11 @@ import { MarketModule } from './market/market.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SectorsModule } from './sectors/sectors.module';
+import { StrategyModule } from './strategy/strategy.module';
+import { ProfileModule } from './profile/profile.module';
+import { RecommendationModule } from './recommendations/recommendation.module';
+import { ReportsModule } from './reports/reports.module';
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
@@ -19,6 +24,11 @@ import { SectorsModule } from './sectors/sectors.module';
     AuthModule,
     PortfolioModule,
     AssistantModule,
+    StrategyModule,
+    ProfileModule,
+    RecommendationModule,
+    ReportsModule,
+    TelegramModule,
   ],
   providers: [
     {

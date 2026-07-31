@@ -9,7 +9,11 @@ import { BrokerRecommendationWidget } from '@/components/BrokerRecommendationWid
 import { SectorRecommendationWidget } from '@/components/SectorRecommendationWidget';
 import { AuthPanel } from '@/components/AuthPanel';
 import { PortfolioPanel } from '@/components/PortfolioPanel';
+import { PerformanceDashboard } from '@/components/PerformanceDashboard';
+import { RecommendationsPanel } from '@/components/RecommendationsPanel';
+import { InsightReportPanel } from '@/components/InsightReportPanel';
 import { AssistantChat } from '@/components/AssistantChat';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [style, setStyle] = useState<InvestmentStyle>(InvestmentStyle.SWING_TRADING);
@@ -25,6 +29,9 @@ export default function DashboardPage() {
           <span className="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800">
             Rules-based technical analysis — not financial advice
           </span>
+          <Link href="/onboarding" className="text-xs text-slate-400 hover:text-emerald-400 underline">
+            Risk questionnaire
+          </Link>
           <AuthPanel />
         </div>
       </header>
@@ -48,8 +55,18 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-200">Performance Dashboard</h2>
+            <PerformanceDashboard />
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 text-slate-200">Sector & Company Recommendations</h2>
             <SectorRecommendationWidget style={style} />
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-200">AI Insight Report</h2>
+            <InsightReportPanel symbol={symbol} assetClass={assetClass} />
           </div>
         </div>
 
@@ -67,6 +84,11 @@ export default function DashboardPage() {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 text-slate-200">Optimized Broker Match</h2>
             <BrokerRecommendationWidget style={style} />
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-200">Personalized Recommendations</h2>
+            <RecommendationsPanel />
           </div>
         </div>
       </div>

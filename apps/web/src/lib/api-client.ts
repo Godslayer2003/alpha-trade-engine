@@ -172,6 +172,189 @@ export async function postTrade(
   return res.json();
 }
 
+export interface PerformanceTrade {
+  ticker: string;
+  pnl: number;
+  executedAt: string;
+}
+
+export interface Performance {
+  startingCash: number;
+  equityCurve: { t: string; value: number }[];
+  totalReturnPct: number;
+  realizedPnL: number;
+  winRate: number | null;
+  tradeCount: number;
+  bestTrade: PerformanceTrade | null;
+  worstTrade: PerformanceTrade | null;
+}
+
+export async function fetchPerformance(token: string): Promise<Performance> {
+  const res = await fetch(`${API_URL}/api/v1/portfolio/performance`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not load performance data');
+  return res.json();
+}
+
+// --- Custom investment strategies ---
+
+export interface Strategy {
+  id: string;
+  name: string;
+  style: string;
+  preferredTickers: string[];
+  maxRiskPerTrade: number;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface StrategyInput {
+  name: string;
+  style: string;
+  preferredTickers: string[];
+  maxRiskPerTrade: number;
+  notes?: string;
+}
+
+export async function fetchStrategies(token: string): Promise<Strategy[]> {
+  const res = await fetch(`${API_URL}/api/v1/strategies`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load strategies');
+  return res.json();
+}
+
+export async function createStrategy(token: string, input: StrategyInput): Promise<Strategy> {
+  const res = await fetch(`${API_URL}/api/v1/strategies`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not create strategy');
+  return res.json();
+}
+
+export async function updateStrategy(
+  token: string,
+  id: string,
+  input: Partial<StrategyInput & { isActive: boolean }>,
+): Promise<Strategy> {
+  const res = await fetch(`${API_URL}/api/v1/strategies/${id}`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not update strategy');
+  return res.json();
+}
+
+export async function deleteStrategy(token: string, id: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/strategies/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) await throwOnError(res, 'Could not delete strategy');
+}
+
+// --- Risk profile / questionnaire ---
+
+export interface Profile {
+  riskTolerance: string;
+  capitalBase: number;
+  investmentGoal: string | null;
+  timeHorizonYears: number | null;
+  experienceLevel: string | null;
+}
+
+export interface ProfileInput {
+  riskTolerance: string;
+  capitalBase: number;
+  investmentGoal: string;
+  timeHorizonYears: number;
+  experienceLevel: string;
+}
+
+export async function fetchProfile(token: string): Promise<Profile | null> {
+  const res = await fetch(`${API_URL}/api/v1/profile`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load profile');
+  return res.json();
+}
+
+export async function updateProfile(token: string, input: ProfileInput): Promise<Profile> {
+  const res = await fetch(`${API_URL}/api/v1/profile`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not save profile');
+  return res.json();
+}
+
+// --- Personalized recommendations ---
+
+export interface Recommendation {
+  id: string;
+  ticker: string;
+  assetClass: AssetClass;
+  dealType: string;
+  horizonStyle: string;
+  entryPrice: number;
+  stopLoss: number | null;
+  targetPrice: number | null;
+  justification: string;
+  createdAt: string;
+}
+
+export async function fetchRecommendations(token: string): Promise<Recommendation[]> {
+  const res = await fetch(`${API_URL}/api/v1/recommendations`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load recommendations');
+  return res.json();
+}
+
+export async function generateRecommendations(token: string): Promise<Recommendation[]> {
+  const res = await fetch(`${API_URL}/api/v1/recommendations/generate`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not generate recommendations');
+  return res.json();
+}
+
+// --- Telegram linking ---
+
+export async function createTelegramLinkCode(token: string): Promise<string> {
+  const res = await fetch(`${API_URL}/api/v1/telegram/link-code`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not create a Telegram link code');
+  const body = (await res.json()) as { code: string };
+  return body.code;
+}
+
+// --- AI insight reports ---
+
+export interface AiReport {
+  id: string;
+  symbol: string;
+  assetClass: AssetClass;
+  periodLabel: string;
+  content: string;
+  grounded: boolean;
+  generatedAt: string;
+}
+
+export async function fetchReport(
+  symbol: string,
+  assetClass: AssetClass,
+  months: number,
+): Promise<AiReport> {
+  const params = new URLSearchParams({ symbol, assetClass, months: String(months) });
+  const res = await fetch(`${API_URL}/api/v1/reports?${params.toString()}`);
+  if (!res.ok) return throwOnError(res, 'Could not generate report');
+  return res.json();
+}
+
 // --- AI guide chat ---
 
 export interface ChatMessage {

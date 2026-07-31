@@ -5,5 +5,6 @@ import { AnalysisService } from './analysis.service';
 @Module({
   controllers: [AnalysisController],
   providers: [AnalysisService],
+  exports: [AnalysisService],
 })
 export class AnalysisModule {}

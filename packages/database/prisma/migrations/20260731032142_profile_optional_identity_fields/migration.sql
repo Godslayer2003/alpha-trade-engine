@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "UserProfile" ALTER COLUMN "firstName" DROP NOT NULL,
+ALTER COLUMN "lastName" DROP NOT NULL,
+ALTER COLUMN "country" DROP NOT NULL;

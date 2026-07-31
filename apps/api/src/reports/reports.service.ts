@@ -101,15 +101,22 @@ export class ReportsService {
         `move — trend strength, volatility, and what the range suggests — using only these numbers. Do not ` +
         `speculate about news or events since you have no access to them; end with one sentence noting you're ` +
         `working from price action only, not news.`;
-      const interaction = await client.interactions.create({
-        model: MODEL,
-        system_instruction:
-          'You are a markets analyst. You do NOT have access to live news or search — explain price moves ' +
-          'purely in terms of the technical price action given to you.',
-        input: fallbackPrompt,
-        generation_config: { max_output_tokens: 700, thinking_level: 'low' },
-      });
-      return this.saveReport(dto, periodLabel, interaction.output_text ?? '', false);
+      try {
+        const interaction = await client.interactions.create({
+          model: MODEL,
+          system_instruction:
+            'You are a markets analyst. You do NOT have access to live news or search — explain price moves ' +
+            'purely in terms of the technical price action given to you.',
+          input: fallbackPrompt,
+          generation_config: { max_output_tokens: 700, thinking_level: 'low' },
+        });
+        return this.saveReport(dto, periodLabel, interaction.output_text ?? '', false);
+      } catch (fallbackErr) {
+        this.logger.error(`Fallback report generation also failed: ${(fallbackErr as Error).message}`);
+        throw new ServiceUnavailableException(
+          'The AI report service is temporarily unavailable (rate limited) — try again in a minute.',
+        );
+      }
     }
   }
 

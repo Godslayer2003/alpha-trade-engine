@@ -3,33 +3,61 @@
 import { useState } from 'react';
 import { AssetClass, TIMEFRAME_LABELS, Timeframe } from '@alpha-trade/shared-types';
 
-const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
-  [AssetClass.EQUITY]: 'Stocks / ETFs / Indices',
-  [AssetClass.CRYPTO]: 'Cryptocurrency',
-  [AssetClass.COMMODITY]: 'Commodities',
+// UI-only categorization for the picker/quick-picks. The backend only knows
+// three asset classes (EQUITY/CRYPTO/COMMODITY) — Stocks, ETFs, and Indexes
+// all resolve through the same Yahoo Finance fetcher as EQUITY, so this
+// exists purely to keep the quick-pick lists organized and short.
+type MarketCategory = 'STOCKS' | 'ETFS' | 'INDEXES' | 'CRYPTO' | 'COMMODITY';
+
+const MARKET_CATEGORIES: MarketCategory[] = ['STOCKS', 'ETFS', 'INDEXES', 'CRYPTO', 'COMMODITY'];
+
+const CATEGORY_LABELS: Record<MarketCategory, string> = {
+  STOCKS: 'Stocks',
+  ETFS: 'ETFs',
+  INDEXES: 'Indexes',
+  CRYPTO: 'Cryptocurrency',
+  COMMODITY: 'Commodities',
+};
+
+const CATEGORY_TO_ASSET_CLASS: Record<MarketCategory, AssetClass> = {
+  STOCKS: AssetClass.EQUITY,
+  ETFS: AssetClass.EQUITY,
+  INDEXES: AssetClass.EQUITY,
+  CRYPTO: AssetClass.CRYPTO,
+  COMMODITY: AssetClass.COMMODITY,
 };
 
 // Quick picks are shortcuts for the handful of names most people look for
-// first — not a catalog. Anything else (Russell 2000, VIX, DAX, TSX, ...)
-// is still just as loadable, by typing it into the search bar above.
-const QUICK_PICKS: Record<AssetClass, { label: string; symbol: string }[]> = {
-  [AssetClass.EQUITY]: [
-    { label: 'S&P 500', symbol: '^GSPC' },
-    { label: 'Dow Jones', symbol: '^DJI' },
-    { label: 'NASDAQ Composite', symbol: '^IXIC' },
-    { label: 'FTSE 100 (UK)', symbol: '^FTSE' },
-    { label: 'Nikkei 225 (Japan)', symbol: '^N225' },
-    { label: 'QQQ', symbol: 'QQQ' },
-    { label: 'SPY', symbol: 'SPY' },
-    { label: 'AAPL', symbol: 'AAPL' },
-    { label: 'NVDA', symbol: 'NVDA' },
+// first — not a catalog. Anything else is still just as loadable by typing
+// it into the search bar above.
+const QUICK_PICKS: Record<MarketCategory, { label: string; symbol: string }[]> = {
+  STOCKS: [
+    { label: 'NVIDIA', symbol: 'NVDA' },
+    { label: 'Tesla', symbol: 'TSLA' },
+    { label: 'Alphabet', symbol: 'GOOGL' },
+    { label: 'Microsoft', symbol: 'MSFT' },
+    { label: 'Apple', symbol: 'AAPL' },
   ],
-  [AssetClass.CRYPTO]: [
+  ETFS: [
+    { label: 'SPY', symbol: 'SPY' },
+    { label: 'VOO', symbol: 'VOO' },
+    { label: 'QQQ', symbol: 'QQQ' },
+    { label: 'AIS', symbol: 'AIS' },
+    { label: 'PSI', symbol: 'PSI' },
+  ],
+  INDEXES: [
+    { label: 'S&P 500', symbol: '^GSPC' },
+    { label: 'NASDAQ Composite', symbol: '^IXIC' },
+    { label: 'Dow Jones Industrial Average', symbol: '^DJI' },
+    { label: 'Russell 2000', symbol: '^RUT' },
+    { label: 'S&P/TSX Composite', symbol: '^GSPTSE' },
+  ],
+  CRYPTO: [
     { label: 'Bitcoin', symbol: 'BTCUSDT' },
     { label: 'Ethereum', symbol: 'ETHUSDT' },
     { label: 'Solana', symbol: 'SOLUSDT' },
   ],
-  [AssetClass.COMMODITY]: [
+  COMMODITY: [
     { label: 'Crude Oil', symbol: 'CL=F' },
     { label: 'Gold', symbol: 'GC=F' },
     { label: 'Silver', symbol: 'SI=F' },
@@ -38,33 +66,27 @@ const QUICK_PICKS: Record<AssetClass, { label: string; symbol: string }[]> = {
 };
 
 interface AssetSearchBarProps {
-  assetClass: AssetClass;
   symbol: string;
   timeframe: Timeframe;
   onChange: (assetClass: AssetClass, symbol: string) => void;
   onTimeframeChange: (timeframe: Timeframe) => void;
 }
 
-export function AssetSearchBar({
-  assetClass,
-  symbol,
-  timeframe,
-  onChange,
-  onTimeframeChange,
-}: AssetSearchBarProps) {
+export function AssetSearchBar({ symbol, timeframe, onChange, onTimeframeChange }: AssetSearchBarProps) {
+  const [category, setCategory] = useState<MarketCategory>('STOCKS');
   const [draft, setDraft] = useState(symbol);
 
   function submitDraft() {
     const trimmed = draft.trim();
-    if (trimmed) onChange(assetClass, trimmed);
+    if (trimmed) onChange(CATEGORY_TO_ASSET_CLASS[category], trimmed);
   }
 
   return (
     <div className="space-y-3">
       {/* Primary control: type any symbol Yahoo/Binance recognizes and load
           it directly — the quick picks below are shortcuts, not the only
-          way in. Asset class only determines which data source ("market")
-          the typed symbol is looked up against. */}
+          way in. Category only determines which data source the typed
+          symbol is looked up against. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -90,18 +112,19 @@ export function AssetSearchBar({
         <label className="flex items-center gap-2 text-xs text-slate-500">
           Market
           <select
-            value={assetClass}
+            value={category}
             onChange={(e) => {
-              const nextClass = e.target.value as AssetClass;
-              const defaultSymbol = QUICK_PICKS[nextClass][0].symbol;
+              const nextCategory = e.target.value as MarketCategory;
+              const defaultSymbol = QUICK_PICKS[nextCategory][0].symbol;
+              setCategory(nextCategory);
               setDraft(defaultSymbol);
-              onChange(nextClass, defaultSymbol);
+              onChange(CATEGORY_TO_ASSET_CLASS[nextCategory], defaultSymbol);
             }}
             className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
-            {Object.values(AssetClass).map((ac) => (
-              <option key={ac} value={ac}>
-                {ASSET_CLASS_LABELS[ac]}
+            {MARKET_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {CATEGORY_LABELS[c]}
               </option>
             ))}
           </select>
@@ -124,12 +147,12 @@ export function AssetSearchBar({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {QUICK_PICKS[assetClass].map((pick) => (
+        {QUICK_PICKS[category].map((pick) => (
           <button
             key={pick.symbol}
             onClick={() => {
               setDraft(pick.symbol);
-              onChange(assetClass, pick.symbol);
+              onChange(CATEGORY_TO_ASSET_CLASS[category], pick.symbol);
             }}
             className={`text-xs px-2.5 py-1 rounded-full border ${
               symbol === pick.symbol

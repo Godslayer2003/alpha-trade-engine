@@ -35,7 +35,6 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold mb-4 text-slate-200">Live Asset & Pattern Analysis</h2>
             <div className="mb-4">
               <AssetSearchBar
-                assetClass={assetClass}
                 symbol={symbol}
                 timeframe={timeframe}
                 onChange={(nextClass, nextSymbol) => {

@@ -31,6 +31,35 @@ export enum AssetClass {
   COMMODITY = 'COMMODITY',
 }
 
+// Mirrors packages/ai-engine/app/data_sources/common.py's SUPPORTED_TIMEFRAMES
+// exactly — the ai-engine is the source of truth for what's fetchable; this
+// enum exists so the frontend has a canonical, typed list + labels to render.
+export enum Timeframe {
+  ONE_HOUR = '1H',
+  ONE_DAY = '1D',
+  ONE_WEEK = '1W',
+  ONE_MONTH = '1M',
+  THREE_MONTHS = '3M',
+  SIX_MONTHS = '6M',
+  NINE_MONTHS = '9M',
+  ONE_YEAR = '1Y',
+  FIVE_YEARS = '5Y',
+  TEN_YEARS = '10Y',
+}
+
+export const TIMEFRAME_LABELS: Record<Timeframe, string> = {
+  [Timeframe.ONE_HOUR]: '1 Hour',
+  [Timeframe.ONE_DAY]: '1 Day',
+  [Timeframe.ONE_WEEK]: '1 Week',
+  [Timeframe.ONE_MONTH]: '1 Month',
+  [Timeframe.THREE_MONTHS]: '3 Months',
+  [Timeframe.SIX_MONTHS]: '6 Months',
+  [Timeframe.NINE_MONTHS]: '9 Months',
+  [Timeframe.ONE_YEAR]: '1 Year',
+  [Timeframe.FIVE_YEARS]: '5 Years',
+  [Timeframe.TEN_YEARS]: '10 Years',
+};
+
 export const GetSignalRequestSchema = z.object({
   symbol: z.string().min(1),
   assetClass: z.nativeEnum(AssetClass),

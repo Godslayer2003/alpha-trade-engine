@@ -12,10 +12,22 @@ from .common import Candle, MarketDataError, Timeframe
 BASE_URL = 'https://api.binance.com/api/v3/klines'
 FALLBACK_URL = 'https://api.binance.us/api/v3/klines'
 
+# (interval, limit) — limit is a candle count, kept well above the signal
+# engine's MIN_CANDLES=50 floor for every timeframe (Binance's klines cap is
+# 1000 per request, never approached here). Mirrors the Yahoo mapping in
+# yahoo.py's _TIMEFRAME_PARAMS: "1M" uses 30-minute candles rather than daily
+# for the same reason documented there.
 _TIMEFRAME_PARAMS: dict[Timeframe, tuple[str, int]] = {
     '1H': ('1h', 200),
     '1D': ('1d', 180),
     '1W': ('1w', 104),
+    '1M': ('30m', 700),
+    '3M': ('1d', 90),
+    '6M': ('1d', 180),
+    '9M': ('1d', 270),
+    '1Y': ('1d', 365),
+    '5Y': ('1w', 260),
+    '10Y': ('1w', 520),
 }
 
 # Crypto pairs are quoted (BTCUSDT, not just BTC) — normalize a bare base

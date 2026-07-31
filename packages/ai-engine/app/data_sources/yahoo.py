@@ -9,12 +9,26 @@ from .common import Candle, MarketDataError, Timeframe
 # equities/ETFs/indices (AAPL, QQQ, ^GSPC) and commodity futures (CL=F, GC=F).
 BASE_URL = 'https://query1.finance.yahoo.com/v8/finance/chart'
 
-# (interval, range) — chosen to give enough history for a 200-period SMA/ATR
-# lookback while staying inside Yahoo's supported interval/range pairings.
+# (interval, range) — chosen so every timeframe comfortably clears the
+# signal engine's MIN_CANDLES=50 floor while staying inside Yahoo's valid
+# range enum ("1d","5d","1mo","3mo","6mo","1y","2y","5y","10y","ytd","max")
+# and its per-interval intraday lookback limits. "1M" uses a 30-minute
+# interval (not daily) because a literal 1-month *daily* window is only
+# ~21 trading candles — too few for a 50-period SMA — so a finer intraday
+# granularity is used to keep "1 Month" meaningfully distinct from "3
+# Months" while still satisfying the floor. "9M" has no native Yahoo range
+# bucket, so it rounds up to the next one ("1y").
 _TIMEFRAME_PARAMS: dict[Timeframe, tuple[str, str]] = {
     '1H': ('60m', '1mo'),
     '1D': ('1d', '6mo'),
     '1W': ('1wk', '2y'),
+    '1M': ('30m', '1mo'),
+    '3M': ('1d', '3mo'),
+    '6M': ('1d', '6mo'),
+    '9M': ('1d', '1y'),
+    '1Y': ('1d', '2y'),
+    '5Y': ('1wk', '5y'),
+    '10Y': ('1wk', '10y'),
 }
 
 _HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; AlphaTradeEngine/0.1)'}

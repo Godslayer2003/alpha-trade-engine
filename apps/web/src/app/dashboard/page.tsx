@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AssetClass, InvestmentStyle } from '@alpha-trade/shared-types';
+import { AssetClass, InvestmentStyle, Timeframe } from '@alpha-trade/shared-types';
 import { CandlestickChartWidget } from '@/components/CandlestickChartWidget';
 import { AssetSearchBar } from '@/components/AssetSearchBar';
 import { StrategySelectorPanel } from '@/components/StrategySelectorPanel';
@@ -11,12 +11,11 @@ import { AuthPanel } from '@/components/AuthPanel';
 import { PortfolioPanel } from '@/components/PortfolioPanel';
 import { AssistantChat } from '@/components/AssistantChat';
 
-const TIMEFRAME = '1D';
-
 export default function DashboardPage() {
   const [style, setStyle] = useState<InvestmentStyle>(InvestmentStyle.SWING_TRADING);
   const [assetClass, setAssetClass] = useState<AssetClass>(AssetClass.EQUITY);
   const [symbol, setSymbol] = useState('QQQ');
+  const [timeframe, setTimeframe] = useState<Timeframe>(Timeframe.ONE_DAY);
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50 p-6">
@@ -38,13 +37,15 @@ export default function DashboardPage() {
               <AssetSearchBar
                 assetClass={assetClass}
                 symbol={symbol}
+                timeframe={timeframe}
                 onChange={(nextClass, nextSymbol) => {
                   setAssetClass(nextClass);
                   setSymbol(nextSymbol);
                 }}
+                onTimeframeChange={setTimeframe}
               />
             </div>
-            <CandlestickChartWidget symbol={symbol} assetClass={assetClass} timeframe={TIMEFRAME} />
+            <CandlestickChartWidget symbol={symbol} assetClass={assetClass} timeframe={timeframe} />
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl">
@@ -71,7 +72,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <AssistantChat symbol={symbol} assetClass={assetClass} timeframe={TIMEFRAME} />
+      <AssistantChat symbol={symbol} assetClass={assetClass} timeframe={timeframe} />
     </main>
   );
 }

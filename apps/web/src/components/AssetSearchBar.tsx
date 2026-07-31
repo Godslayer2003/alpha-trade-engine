@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AssetClass } from '@alpha-trade/shared-types';
+import { AssetClass, TIMEFRAME_LABELS, Timeframe } from '@alpha-trade/shared-types';
 
 const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
   [AssetClass.EQUITY]: 'Stocks / ETFs / Indices',
@@ -36,10 +36,18 @@ const QUICK_PICKS: Record<AssetClass, { label: string; symbol: string }[]> = {
 interface AssetSearchBarProps {
   assetClass: AssetClass;
   symbol: string;
+  timeframe: Timeframe;
   onChange: (assetClass: AssetClass, symbol: string) => void;
+  onTimeframeChange: (timeframe: Timeframe) => void;
 }
 
-export function AssetSearchBar({ assetClass, symbol, onChange }: AssetSearchBarProps) {
+export function AssetSearchBar({
+  assetClass,
+  symbol,
+  timeframe,
+  onChange,
+  onTimeframeChange,
+}: AssetSearchBarProps) {
   const [draft, setDraft] = useState(symbol);
 
   function submitDraft() {
@@ -62,6 +70,19 @@ export function AssetSearchBar({ assetClass, symbol, onChange }: AssetSearchBarP
         {Object.values(AssetClass).map((ac) => (
           <option key={ac} value={ac}>
             {ASSET_CLASS_LABELS[ac]}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={timeframe}
+        onChange={(e) => onTimeframeChange(e.target.value as Timeframe)}
+        className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        aria-label="Chart timeframe"
+      >
+        {Object.values(Timeframe).map((tf) => (
+          <option key={tf} value={tf}>
+            {TIMEFRAME_LABELS[tf]}
           </option>
         ))}
       </select>

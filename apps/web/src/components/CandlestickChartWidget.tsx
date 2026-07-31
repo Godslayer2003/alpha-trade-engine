@@ -69,8 +69,11 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
     fetchCandles(symbol, assetClass, timeframe)
       .then((candles) => {
         if (cancelled) return;
+        // Use a full Unix timestamp rather than a date-only string: several
+        // timeframes (1H, 1M) fetch multiple intraday candles per calendar
+        // day, and a date-only key would collapse them onto the same point.
         const data: CandlestickData[] = candles.map((c) => ({
-          time: (c.time.slice(0, 10)) as CandlestickData['time'],
+          time: Math.floor(new Date(c.time).getTime() / 1000) as CandlestickData['time'],
           open: c.open,
           high: c.high,
           low: c.low,

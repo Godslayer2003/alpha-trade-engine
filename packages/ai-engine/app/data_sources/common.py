@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from typing import Literal
 
-Timeframe = Literal['1H', '1D', '1W']
+Timeframe = Literal['1H', '1D', '1W', '1M', '3M', '6M', '9M', '1Y', '5Y', '10Y']
 
-SUPPORTED_TIMEFRAMES: tuple[Timeframe, ...] = ('1H', '1D', '1W')
+SUPPORTED_TIMEFRAMES: tuple[Timeframe, ...] = (
+    '1H', '1D', '1W', '1M', '3M', '6M', '9M', '1Y', '5Y', '10Y',
+)
 
 
 @dataclass(frozen=True)

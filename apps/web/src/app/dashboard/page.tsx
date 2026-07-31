@@ -7,6 +7,9 @@ import { AssetSearchBar } from '@/components/AssetSearchBar';
 import { StrategySelectorPanel } from '@/components/StrategySelectorPanel';
 import { BrokerRecommendationWidget } from '@/components/BrokerRecommendationWidget';
 import { SectorRecommendationWidget } from '@/components/SectorRecommendationWidget';
+import { MarketHoursWidget } from '@/components/MarketHoursWidget';
+import { TradeNewsWidget } from '@/components/TradeNewsWidget';
+import { CompanyReportsWidget } from '@/components/CompanyReportsWidget';
 import { AuthPanel } from '@/components/AuthPanel';
 import { PortfolioPanel } from '@/components/PortfolioPanel';
 import { PerformanceDashboard } from '@/components/PerformanceDashboard';
@@ -58,6 +61,18 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">
+              Why Is {symbol} Moving?
+            </h2>
+            <TradeNewsWidget symbol={symbol} assetClass={assetClass} />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Global Market Hours</h2>
+            <MarketHoursWidget />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Performance Dashboard</h2>
             <PerformanceDashboard />
           </div>
@@ -92,6 +107,11 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Personalized Recommendations</h2>
             <RecommendationsPanel />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Company Reports</h2>
+            <CompanyReportsWidget />
           </div>
         </div>
       </div>

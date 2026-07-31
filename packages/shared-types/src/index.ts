@@ -121,3 +121,38 @@ export const CompanyRecommendationSchema = z.object({
   suitableStyles: z.array(z.nativeEnum(InvestmentStyle)),
 });
 export type CompanyRecommendation = z.infer<typeof CompanyRecommendationSchema>;
+
+export enum MarketCountry {
+  USA = 'USA',
+  CANADA = 'CANADA',
+  UK = 'UK',
+  GERMANY = 'GERMANY',
+  FRANCE = 'FRANCE',
+  CHINA = 'CHINA',
+  JAPAN = 'JAPAN',
+  KOREA = 'KOREA',
+  RUSSIA = 'RUSSIA',
+  SOUTH_AFRICA = 'SOUTH_AFRICA',
+  ARGENTINA = 'ARGENTINA',
+  AUSTRALIA = 'AUSTRALIA',
+}
+
+// Computed live from each exchange's regular trading calendar (timezone +
+// weekday sessions) — weekends are accounted for, exchange-specific public
+// holidays are not, hence the disclaimer field carried on every response.
+export const MarketHoursStatusSchema = z.object({
+  country: z.nativeEnum(MarketCountry),
+  countryLabel: z.string(),
+  exchangeName: z.string(),
+  timezone: z.string(),
+  isOpen: z.boolean(),
+  currentLocalTime: z.string(),
+  sessionsLocal: z.array(z.object({ opens: z.string(), closes: z.string() })),
+  nextTransition: z.object({
+    type: z.enum(['OPEN', 'CLOSE']),
+    localLabel: z.string(),
+    inMinutes: z.number(),
+  }),
+  disclaimer: z.string(),
+});
+export type MarketHoursStatus = z.infer<typeof MarketHoursStatusSchema>;

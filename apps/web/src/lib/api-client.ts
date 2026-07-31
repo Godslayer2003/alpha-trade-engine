@@ -1,4 +1,4 @@
-import { AssetClass, TradeSignal } from '@alpha-trade/shared-types';
+import { AssetClass, MarketCountry, MarketHoursStatus, TradeSignal } from '@alpha-trade/shared-types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -83,6 +83,15 @@ export async function fetchSectorRecommendations(
   const res = await fetch(`${API_URL}/api/v1/sectors/recommend?${params.toString()}`);
   if (!res.ok) {
     throw new Error(`Sector recommendation request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchMarketHours(countries?: MarketCountry[]): Promise<MarketHoursStatus[]> {
+  const params = countries && countries.length > 0 ? `?countries=${countries.join(',')}` : '';
+  const res = await fetch(`${API_URL}/api/v1/market-hours${params}`);
+  if (!res.ok) {
+    throw new Error(`Market hours request failed: ${res.status}`);
   }
   return res.json();
 }

@@ -9,25 +9,16 @@ const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
   [AssetClass.COMMODITY]: 'Commodities',
 };
 
-// Ticker syntax differs by data source (Yahoo vs Binance) and isn't obvious
-// to a regular user (^GSPC for the S&P 500, CL=F for crude oil futures) —
-// quick picks sidestep needing to know the exact format.
+// Quick picks are shortcuts for the handful of names most people look for
+// first — not a catalog. Anything else (Russell 2000, VIX, DAX, TSX, ...)
+// is still just as loadable, by typing it into the search bar above.
 const QUICK_PICKS: Record<AssetClass, { label: string; symbol: string }[]> = {
   [AssetClass.EQUITY]: [
-    // Major indices first — Yahoo's "^"-prefixed index tickers, same
-    // fetcher as everything else in this asset class.
     { label: 'S&P 500', symbol: '^GSPC' },
     { label: 'Dow Jones', symbol: '^DJI' },
     { label: 'NASDAQ Composite', symbol: '^IXIC' },
-    { label: 'Nasdaq-100', symbol: '^NDX' },
-    { label: 'Russell 2000', symbol: '^RUT' },
-    { label: 'VIX', symbol: '^VIX' },
-    { label: 'TSX (Canada)', symbol: '^GSPTSE' },
     { label: 'FTSE 100 (UK)', symbol: '^FTSE' },
     { label: 'Nikkei 225 (Japan)', symbol: '^N225' },
-    { label: 'DAX (Germany)', symbol: '^GDAXI' },
-    { label: 'Hang Seng (HK)', symbol: '^HSI' },
-    // ETFs and individual stocks
     { label: 'QQQ', symbol: 'QQQ' },
     { label: 'SPY', symbol: 'SPY' },
     { label: 'AAPL', symbol: 'AAPL' },

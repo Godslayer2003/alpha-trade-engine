@@ -69,37 +69,11 @@ export function AssetSearchBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <select
-        value={assetClass}
-        onChange={(e) => {
-          const nextClass = e.target.value as AssetClass;
-          const defaultSymbol = QUICK_PICKS[nextClass][0].symbol;
-          setDraft(defaultSymbol);
-          onChange(nextClass, defaultSymbol);
-        }}
-        className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-      >
-        {Object.values(AssetClass).map((ac) => (
-          <option key={ac} value={ac}>
-            {ASSET_CLASS_LABELS[ac]}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={timeframe}
-        onChange={(e) => onTimeframeChange(e.target.value as Timeframe)}
-        className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        aria-label="Chart timeframe"
-      >
-        {Object.values(Timeframe).map((tf) => (
-          <option key={tf} value={tf}>
-            {TIMEFRAME_LABELS[tf]}
-          </option>
-        ))}
-      </select>
-
+    <div className="space-y-3">
+      {/* Primary control: type any symbol Yahoo/Binance recognizes and load
+          it directly — the quick picks below are shortcuts, not the only
+          way in. Asset class only determines which data source ("market")
+          the typed symbol is looked up against. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -110,16 +84,53 @@ export function AssetSearchBar({
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Symbol (e.g. QQQ)"
-          className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          placeholder="Search any stock, index, crypto, or commodity (e.g. AAPL, ^DJI, BTC, CL=F)"
+          className="flex-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <button
           type="submit"
-          className="text-xs px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100"
+          className="text-sm px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium whitespace-nowrap"
         >
-          Load
+          Search
         </button>
       </form>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-xs text-slate-500">
+          Market
+          <select
+            value={assetClass}
+            onChange={(e) => {
+              const nextClass = e.target.value as AssetClass;
+              const defaultSymbol = QUICK_PICKS[nextClass][0].symbol;
+              setDraft(defaultSymbol);
+              onChange(nextClass, defaultSymbol);
+            }}
+            className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {Object.values(AssetClass).map((ac) => (
+              <option key={ac} value={ac}>
+                {ASSET_CLASS_LABELS[ac]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-xs text-slate-500">
+          Timeframe
+          <select
+            value={timeframe}
+            onChange={(e) => onTimeframeChange(e.target.value as Timeframe)}
+            className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {Object.values(Timeframe).map((tf) => (
+              <option key={tf} value={tf}>
+                {TIMEFRAME_LABELS[tf]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {QUICK_PICKS[assetClass].map((pick) => (

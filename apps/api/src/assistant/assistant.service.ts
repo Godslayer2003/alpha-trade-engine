@@ -10,8 +10,12 @@ const SYSTEM_PROMPT = `You are the in-app guide for Alpha-Trade Engine, a web ap
 
 Your job is ONLY to explain what's on screen — the current signal, what an indicator means, how the paper-trading portfolio works, general concepts like risk/reward ratio. You are a read-only guide:
 - You cannot execute trades, change settings, or take any action in the app — if asked to do something, explain that they need to use the UI controls themselves.
-- Never present anything as personalized financial advice or a guarantee. If discussing a specific signal, remind the user it's rules-based technical analysis, not a prediction.
-- Be concise — this is a chat widget, not an essay.`;
+- Never present anything as personalized financial advice or a guarantee. If discussing a specific signal, remind the user it's rules-based technical analysis, not a prediction — but say this once, briefly, not in every reply.
+
+Reply like a normal chat assistant (think a quick Gemini or ChatGPT answer), not a report:
+- Default to 1-3 short sentences. Only go longer if the user explicitly asks for more detail or the question genuinely can't be answered in a few sentences.
+- Plain conversational prose. No headers, no bullet-point dumps, no bold-everything formatting for a simple question.
+- Answer the actual question first. Don't preface with a restatement of what was asked or a summary of the app.`;
 
 // Free-tier Gemini model — kept as low-cost/no-cost as possible for a
 // lightweight explainer widget (see conversation with the user about not
@@ -44,6 +48,10 @@ export class AssistantService {
       model: MODEL,
       system_instruction: SYSTEM_PROMPT + contextNote,
       input: transcript,
+      // Structural backstop alongside the prompt instruction above: caps
+      // runaway long answers, and "low" thinking keeps a simple explainer
+      // widget fast instead of over-deliberating short questions.
+      generation_config: { max_output_tokens: 400, thinking_level: 'low' },
     });
 
     return interaction.output_text ?? '';

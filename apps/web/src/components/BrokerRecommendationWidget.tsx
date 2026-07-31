@@ -35,15 +35,15 @@ export function BrokerRecommendationWidget({ style }: BrokerRecommendationWidget
   }, [style]);
 
   if (loading) return <p className="text-sm text-slate-500">Loading broker matches…</p>;
-  if (error) return <p className="text-sm text-rose-400">{error}</p>;
+  if (error) return <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>;
 
   return (
     <ul className="space-y-3">
       {matches.map((match) => (
-        <li key={match.brokerName} className="border border-slate-800 rounded-lg p-3">
+        <li key={match.brokerName} className="border border-slate-200 dark:border-slate-800 rounded-lg p-3">
           <div className="flex justify-between items-baseline">
-            <span className="font-medium text-slate-200">{match.brokerName}</span>
-            <span className="text-xs text-emerald-400">{Math.round(match.matchScore * 100)}% match</span>
+            <span className="font-medium text-slate-800 dark:text-slate-200">{match.brokerName}</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400">{Math.round(match.matchScore * 100)}% match</span>
           </div>
           <p className="text-xs text-slate-500 mt-1">{match.reason}</p>
         </li>

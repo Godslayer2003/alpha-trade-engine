@@ -45,12 +45,12 @@ export function InsightReportPanel({ symbol, assetClass }: InsightReportPanelPro
           value={querySymbol}
           onChange={(e) => setQuerySymbol(e.target.value)}
           placeholder="Symbol (e.g. BTCUSDT, AAPL)"
-          className="flex-1 min-w-[8rem] rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="flex-1 min-w-[8rem] rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <select
           value={months}
           onChange={(e) => setMonths(Number(e.target.value))}
-          className="rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           {PERIOD_OPTIONS.map((p) => (
             <option key={p.months} value={p.months}>
@@ -67,25 +67,25 @@ export function InsightReportPanel({ symbol, assetClass }: InsightReportPanelPro
         </button>
       </div>
 
-      {error && <p className="text-xs text-rose-400">{error}</p>}
+      {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
 
       {report && (
-        <div className="border border-slate-800 rounded-lg p-3 space-y-2">
+        <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-slate-200">
+            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
               {report.symbol} · {PERIOD_OPTIONS.find((p) => p.months === months)?.label}
             </span>
             <span
               className={`text-[10px] px-2 py-0.5 rounded-full border ${
                 report.grounded
-                  ? 'border-emerald-800 text-emerald-400 bg-emerald-950'
-                  : 'border-slate-700 text-slate-400 bg-slate-800'
+                  ? 'border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950'
+                  : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
               }`}
             >
               {report.grounded ? 'Grounded with Google Search' : 'Technical analysis only — no news data'}
             </span>
           </div>
-          <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{report.content}</p>
+          <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{report.content}</p>
         </div>
       )}
     </div>

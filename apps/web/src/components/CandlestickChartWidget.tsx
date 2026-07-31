@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickData, IChartApi } from 'lightweight-charts';
 import { AssetClass, DealType } from '@alpha-trade/shared-types';
 import { fetchCandles, fetchTradeSignal, type TradeSignal } from '@/lib/api-client';
+import { useTheme } from '@/lib/theme-context';
 
 interface CandlestickChartWidgetProps {
   symbol: string;
@@ -12,12 +13,13 @@ interface CandlestickChartWidgetProps {
 }
 
 const DEAL_TYPE_STYLES: Record<DealType, string> = {
-  [DealType.LONG]: 'text-emerald-400',
-  [DealType.SHORT]: 'text-rose-400',
-  [DealType.NEUTRAL]: 'text-slate-400',
+  [DealType.LONG]: 'text-emerald-600 dark:text-emerald-400',
+  [DealType.SHORT]: 'text-rose-600 dark:text-rose-400',
+  [DealType.NEUTRAL]: 'text-slate-600 dark:text-slate-400',
 };
 
 export function CandlestickChartWidget({ symbol, assetClass, timeframe }: CandlestickChartWidgetProps) {
+  const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
@@ -33,14 +35,15 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
 
     if (!containerRef.current) return;
 
+    const isDark = theme === 'dark';
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#94a3b8',
+        textColor: isDark ? '#94a3b8' : '#475569',
       },
       grid: {
-        vertLines: { color: '#1e293b' },
-        horzLines: { color: '#1e293b' },
+        vertLines: { color: isDark ? '#1e293b' : '#e2e8f0' },
+        horzLines: { color: isDark ? '#1e293b' : '#e2e8f0' },
       },
       width: containerRef.current.clientWidth,
       height: 360,
@@ -94,7 +97,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [symbol, assetClass, timeframe]);
+  }, [symbol, assetClass, timeframe, theme]);
 
   async function requestSignal() {
     setLoadingSignal(true);
@@ -111,7 +114,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-400">
+        <span className="text-sm text-slate-600 dark:text-slate-400">
           {symbol} · {timeframe}
         </span>
         <button
@@ -124,21 +127,21 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
       </div>
 
       {chartLoading && <p className="text-sm text-slate-500">Loading real market data…</p>}
-      {chartError && <p className="text-sm text-rose-400">{chartError}</p>}
+      {chartError && <p className="text-sm text-rose-600 dark:text-rose-400">{chartError}</p>}
 
       <div ref={containerRef} className="w-full" />
 
-      {signalError && <p className="text-sm text-rose-400">{signalError}</p>}
+      {signalError && <p className="text-sm text-rose-600 dark:text-rose-400">{signalError}</p>}
 
       {signal && (
-        <div className="border border-slate-800 bg-slate-900/60 rounded-lg p-4 space-y-1">
-          <p className="text-sm text-slate-200">
+        <div className="border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 rounded-lg p-4 space-y-1">
+          <p className="text-sm text-slate-800 dark:text-slate-200">
             Pattern: <span className="font-medium">{signal.patternDetected}</span>{' '}
             <span className={`font-semibold ${DEAL_TYPE_STYLES[signal.dealType]}`}>
               ({signal.dealType})
             </span>
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Entry {signal.entryPrice}
             {signal.stopLoss !== null && ` · Stop ${signal.stopLoss}`}
             {signal.targetPrice !== null && ` · Target ${signal.targetPrice}`}
@@ -149,7 +152,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
           <p className="text-[11px] text-slate-500">
             Source: {signal.dataSource} · Generated {new Date(signal.generatedAt).toLocaleString()}
           </p>
-          <p className="text-xs text-amber-400/90 italic">{signal.disclaimer}</p>
+          <p className="text-xs text-amber-700/90 dark:text-amber-400/90 italic">{signal.disclaimer}</p>
         </div>
       )}
     </div>

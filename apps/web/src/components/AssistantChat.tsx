@@ -66,13 +66,13 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 max-h-[28rem] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl flex flex-col">
-      <div className="flex justify-between items-center p-3 border-b border-slate-800">
+    <div className="fixed bottom-6 right-6 w-80 max-h-[28rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col">
+      <div className="flex justify-between items-center p-3 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <p className="text-sm font-semibold text-slate-200">AI Guide</p>
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">AI Guide</p>
           <p className="text-[10px] text-slate-500">Explains the app — not financial advice, can&apos;t place trades</p>
         </div>
-        <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-300 text-sm">
+        <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm">
           ✕
         </button>
       </div>
@@ -88,15 +88,15 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
             key={i}
             className={`rounded-lg px-2.5 py-1.5 text-xs ${
               m.role === 'user'
-                ? 'bg-emerald-950 text-emerald-100 ml-6'
-                : 'bg-slate-800 text-slate-200 mr-6'
+                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100 ml-6'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 mr-6'
             }`}
           >
             {m.content}
           </div>
         ))}
         {sending && <p className="text-xs text-slate-500">Thinking…</p>}
-        {error && <p className="text-xs text-rose-400">{error}</p>}
+        {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
       </div>
 
       <form
@@ -104,13 +104,13 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
           e.preventDefault();
           send();
         }}
-        className="p-2 border-t border-slate-800 flex gap-2"
+        className="p-2 border-t border-slate-200 dark:border-slate-800 flex gap-2"
       >
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Ask a question…"
-          className="flex-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <button
           type="submit"

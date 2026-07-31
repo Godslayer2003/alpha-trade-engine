@@ -189,6 +189,15 @@ export interface Performance {
   worstTrade: PerformanceTrade | null;
 }
 
+export async function resetPortfolio(token: string): Promise<Portfolio> {
+  const res = await fetch(`${API_URL}/api/v1/portfolio/reset`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not reset portfolio');
+  return res.json();
+}
+
 export async function fetchPerformance(token: string): Promise<Performance> {
   const res = await fetch(`${API_URL}/api/v1/portfolio/performance`, {
     headers: authHeaders(token),
@@ -264,15 +273,35 @@ export interface Profile {
   investmentGoal: string | null;
   timeHorizonYears: number | null;
   experienceLevel: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  age: number | null;
+  gender: string | null;
+  profilePictureUrl: string | null;
+  notificationEmail: string | null;
+  dailyReportEnabled: boolean;
+  dailyReportTime: string;
+  dailyReportTimezone: string;
+  dailyReportChannels: string[];
 }
 
-export interface ProfileInput {
+export type ProfileInput = Partial<{
   riskTolerance: string;
   capitalBase: number;
   investmentGoal: string;
   timeHorizonYears: number;
   experienceLevel: string;
-}
+  firstName: string;
+  lastName: string;
+  age: number;
+  gender: string;
+  profilePictureUrl: string;
+  notificationEmail: string;
+  dailyReportEnabled: boolean;
+  dailyReportTime: string;
+  dailyReportTimezone: string;
+  dailyReportChannels: string[];
+}>;
 
 export async function fetchProfile(token: string): Promise<Profile | null> {
   const res = await fetch(`${API_URL}/api/v1/profile`, { headers: authHeaders(token) });
@@ -287,6 +316,15 @@ export async function updateProfile(token: string, input: ProfileInput): Promise
     body: JSON.stringify(input),
   });
   if (!res.ok) return throwOnError(res, 'Could not save profile');
+  return res.json();
+}
+
+export async function sendTestNotification(token: string): Promise<{ sent: string[] }> {
+  const res = await fetch(`${API_URL}/api/v1/notifications/test`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not send test notification');
   return res.json();
 }
 

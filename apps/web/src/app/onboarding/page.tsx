@@ -59,10 +59,10 @@ export default function OnboardingPage() {
 
   if (!user) {
     return (
-      <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center p-6">
+      <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-3">
-          <p className="text-slate-300">Log in first on the dashboard, then come back here.</p>
-          <Link href="/dashboard" className="text-emerald-400 underline">
+          <p className="text-slate-700 dark:text-slate-300">Log in first on the dashboard, then come back here.</p>
+          <Link href="/dashboard" className="text-emerald-600 dark:text-emerald-400 underline">
             Go to dashboard
           </Link>
         </div>
@@ -71,21 +71,21 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50 p-6 flex justify-center">
+    <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 p-6 flex justify-center">
       <div className="w-full max-w-lg space-y-6 py-10">
         <div>
-          <h1 className="text-2xl font-bold text-emerald-400">Tell us about your investing</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Tell us about your investing</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
             A few questions so recommendations are matched to your risk tolerance and timeline —
             not generic advice.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <form onSubmit={handleSubmit} className="space-y-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
           <div className="space-y-2">
-            <label className="block text-sm text-slate-300">Risk tolerance</label>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">Risk tolerance</label>
             {RISK_OPTIONS.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 text-sm text-slate-300">
+              <label key={opt.value} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <input
                   type="radio"
                   name="risk"
@@ -100,23 +100,23 @@ export default function OnboardingPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-sm text-slate-300">Investment horizon (years)</label>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">Investment horizon (years)</label>
             <input
               type="number"
               min="0"
               max="50"
               value={timeHorizonYears}
               onChange={(e) => setTimeHorizonYears(e.target.value)}
-              className="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-sm text-slate-300">Primary goal</label>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">Primary goal</label>
             <select
               value={investmentGoal}
               onChange={(e) => setInvestmentGoal(e.target.value)}
-              className="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               {GOAL_OPTIONS.map((g) => (
                 <option key={g} value={g}>
@@ -127,11 +127,11 @@ export default function OnboardingPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-sm text-slate-300">Experience level</label>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">Experience level</label>
             <select
               value={experienceLevel}
               onChange={(e) => setExperienceLevel(e.target.value)}
-              className="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               {EXPERIENCE_OPTIONS.map((lvl) => (
                 <option key={lvl} value={lvl}>
@@ -142,17 +142,17 @@ export default function OnboardingPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-sm text-slate-300">Capital base (reference only, $)</label>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">Capital base (reference only, $)</label>
             <input
               type="number"
               min="0"
               value={capitalBase}
               onChange={(e) => setCapitalBase(e.target.value)}
-              className="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
-          {error && <p className="text-sm text-rose-400">{error}</p>}
+          {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
 
           <button
             type="submit"

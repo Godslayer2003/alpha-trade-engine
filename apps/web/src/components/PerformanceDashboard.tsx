@@ -3,13 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, LineData, IChartApi } from 'lightweight-charts';
 import { useAuth } from '@/lib/auth-context';
+import { useTheme } from '@/lib/theme-context';
 import { fetchPerformance, type Performance } from '@/lib/api-client';
+
+const CHART_COLORS = {
+  dark: { text: '#94a3b8', grid: '#1e293b' },
+  light: { text: '#475569', grid: '#e2e8f0' },
+};
 
 const currency = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 
 export function PerformanceDashboard() {
   const { user, token } = useAuth();
+  const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [performance, setPerformance] = useState<Performance | null>(null);
@@ -44,9 +51,10 @@ export function PerformanceDashboard() {
     if (!containerRef.current || !performance) return;
 
     if (!chartRef.current) {
+      const colors = CHART_COLORS[theme];
       chartRef.current = createChart(containerRef.current, {
-        layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: '#94a3b8' },
-        grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+        layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: colors.text },
+        grid: { vertLines: { color: colors.grid }, horzLines: { color: colors.grid } },
         width: containerRef.current.clientWidth,
         height: 220,
       });
@@ -74,6 +82,14 @@ export function PerformanceDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    const colors = CHART_COLORS[theme];
+    chartRef.current?.applyOptions({
+      layout: { textColor: colors.text },
+      grid: { vertLines: { color: colors.grid }, horzLines: { color: colors.grid } },
+    });
+  }, [theme]);
+
   if (!user) {
     return (
       <p className="text-sm text-slate-500">
@@ -83,11 +99,13 @@ export function PerformanceDashboard() {
   }
 
   if (loading && !performance) return <p className="text-sm text-slate-500">Loading performance…</p>;
-  if (error) return <p className="text-sm text-rose-400">{error}</p>;
+  if (error) return <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>;
   if (!performance) return null;
 
-  const returnColor = performance.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400';
-  const realizedColor = performance.realizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400';
+  const returnColor =
+    performance.totalReturnPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+  const realizedColor =
+    performance.realizedPnL >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
 
   return (
     <div className="space-y-4">
@@ -104,22 +122,22 @@ export function PerformanceDashboard() {
         </div>
         <div>
           <p className="text-slate-500">Win rate</p>
-          <p className="font-medium text-slate-200">
+          <p className="font-medium text-slate-800 dark:text-slate-200">
             {performance.winRate === null ? '—' : `${Math.round(performance.winRate * 100)}%`}
           </p>
         </div>
         <div>
           <p className="text-slate-500">Trades</p>
-          <p className="font-medium text-slate-200">{performance.tradeCount}</p>
+          <p className="font-medium text-slate-800 dark:text-slate-200">{performance.tradeCount}</p>
         </div>
       </div>
 
       {(performance.bestTrade || performance.worstTrade) && (
-        <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-800 pt-3">
+        <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-200 dark:border-slate-800 pt-3">
           {performance.bestTrade && (
             <div>
               <p className="text-slate-500">Best trade</p>
-              <p className="text-emerald-400">
+              <p className="text-emerald-600 dark:text-emerald-400">
                 {performance.bestTrade.ticker} +{currency(performance.bestTrade.pnl)}
               </p>
             </div>
@@ -127,7 +145,7 @@ export function PerformanceDashboard() {
           {performance.worstTrade && (
             <div>
               <p className="text-slate-500">Worst trade</p>
-              <p className="text-rose-400">
+              <p className="text-rose-600 dark:text-rose-400">
                 {performance.worstTrade.ticker} {currency(performance.worstTrade.pnl)}
               </p>
             </div>

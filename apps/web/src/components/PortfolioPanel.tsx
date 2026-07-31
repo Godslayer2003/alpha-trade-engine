@@ -80,11 +80,11 @@ export function PortfolioPanel({ symbol, assetClass }: PortfolioPanelProps) {
         <div className="flex justify-between text-sm">
           <div>
             <p className="text-slate-500">Cash</p>
-            <p className="text-slate-100 font-medium">{currency(portfolio.cashBalance)}</p>
+            <p className="text-slate-900 dark:text-slate-100 font-medium">{currency(portfolio.cashBalance)}</p>
           </div>
           <div className="text-right">
             <p className="text-slate-500">Total value</p>
-            <p className="text-slate-100 font-medium">{currency(portfolio.totalValue)}</p>
+            <p className="text-slate-900 dark:text-slate-100 font-medium">{currency(portfolio.totalValue)}</p>
           </div>
         </div>
       )}
@@ -99,7 +99,7 @@ export function PortfolioPanel({ symbol, assetClass }: PortfolioPanelProps) {
           step="any"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
-          className="w-20 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="w-20 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <button
           onClick={() => handleTrade('BUY')}
@@ -117,17 +117,17 @@ export function PortfolioPanel({ symbol, assetClass }: PortfolioPanelProps) {
         </button>
       </div>
 
-      {error && <p className="text-xs text-rose-400">{error}</p>}
+      {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
 
       {portfolio && portfolio.holdings.length > 0 && (
         <ul className="space-y-2">
           {portfolio.holdings.map((h) => (
-            <li key={h.id} className="border border-slate-800 rounded-lg p-2.5 text-xs">
+            <li key={h.id} className="border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-xs">
               <div className="flex justify-between">
-                <span className="font-medium text-slate-200">
+                <span className="font-medium text-slate-800 dark:text-slate-200">
                   {h.ticker} · {h.quantity}
                 </span>
-                <span className={h.unrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                <span className={h.unrealizedPnL >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
                   {h.unrealizedPnL >= 0 ? '+' : ''}
                   {currency(h.unrealizedPnL)}
                 </span>

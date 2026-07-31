@@ -10,9 +10,9 @@ import {
 } from '@/lib/api-client';
 
 const DEAL_TYPE_STYLES: Record<string, string> = {
-  LONG: 'text-emerald-400',
-  SHORT: 'text-rose-400',
-  NEUTRAL: 'text-slate-400',
+  LONG: 'text-emerald-600 dark:text-emerald-400',
+  SHORT: 'text-rose-600 dark:text-rose-400',
+  NEUTRAL: 'text-slate-600 dark:text-slate-400',
 };
 
 const STYLE_LABELS: Record<string, string> = {
@@ -87,7 +87,7 @@ export function RecommendationsPanel() {
       </button>
 
       {needsQuestionnaire && (
-        <p className="text-xs text-amber-400">
+        <p className="text-xs text-amber-700 dark:text-amber-400">
           Complete the{' '}
           <Link href="/onboarding" className="underline">
             risk questionnaire
@@ -95,7 +95,7 @@ export function RecommendationsPanel() {
           first so this can be tailored to you.
         </p>
       )}
-      {error && <p className="text-xs text-rose-400">{error}</p>}
+      {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
       {loading && recommendations.length === 0 && (
         <p className="text-xs text-slate-500">Loading…</p>
       )}
@@ -103,10 +103,10 @@ export function RecommendationsPanel() {
       {recommendations.length > 0 && (
         <ul className="space-y-3">
           {recommendations.map((r) => (
-            <li key={r.id} className="border border-slate-800 rounded-lg p-3 text-xs">
+            <li key={r.id} className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs">
               <div className="flex justify-between items-baseline">
-                <span className="font-medium text-slate-200">{r.ticker}</span>
-                <span className={`font-semibold ${DEAL_TYPE_STYLES[r.dealType] ?? 'text-slate-400'}`}>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{r.ticker}</span>
+                <span className={`font-semibold ${DEAL_TYPE_STYLES[r.dealType] ?? 'text-slate-600 dark:text-slate-400'}`}>
                   {r.dealType}
                 </span>
               </div>
@@ -117,7 +117,7 @@ export function RecommendationsPanel() {
                 {' · '}
                 {STYLE_LABELS[r.horizonStyle] ?? r.horizonStyle}
               </p>
-              <p className="text-slate-400 mt-1">{r.justification}</p>
+              <p className="text-slate-600 dark:text-slate-400 mt-1">{r.justification}</p>
             </li>
           ))}
         </ul>

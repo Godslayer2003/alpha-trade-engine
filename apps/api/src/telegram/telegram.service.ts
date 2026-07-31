@@ -55,11 +55,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       })
       .catch((err) => {
         this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
-        if (attempt >= 5) {
-          this.logger.error('Telegram bot failed to start after 5 attempts — giving up.');
-          return;
-        }
-        setTimeout(() => this.launchWithRetry(attempt + 1), attempt * 5_000);
+        // Keeps retrying indefinitely (capped backoff) rather than giving up —
+        // a stale container from a previous deploy can hold the getUpdates
+        // lock longer than a few quick attempts would cover.
+        const delay = Math.min(attempt * 5_000, 30_000);
+        setTimeout(() => this.launchWithRetry(attempt + 1), delay);
       });
   }
 

@@ -37,10 +37,25 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       ctx.reply('Something went wrong handling that — try again in a moment.').catch(() => {});
     });
     this.registerHandlers(this.bot);
-    this.bot.launch().catch((err) => {
-      this.logger.error(`Telegram bot failed to start: ${(err as Error).message}`);
-    });
-    this.logger.log('Telegram bot started (long polling).');
+    this.launchWithRetry(this.bot);
+  }
+
+  // Railway's rolling deploys briefly run the old and new containers at
+  // once, so the new instance's first getUpdates call reliably 409s against
+  // the still-shutting-down old one — retry with backoff instead of giving
+  // up on a single race, or the bot silently never starts polling.
+  private launchWithRetry(bot: Telegraf, attempt = 1) {
+    bot
+      .launch()
+      .then(() => this.logger.log('Telegram bot started (long polling).'))
+      .catch((err) => {
+        this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
+        if (attempt >= 5) {
+          this.logger.error('Telegram bot failed to start after 5 attempts — giving up.');
+          return;
+        }
+        setTimeout(() => this.launchWithRetry(bot, attempt + 1), attempt * 5_000);
+      });
   }
 
   onModuleDestroy() {

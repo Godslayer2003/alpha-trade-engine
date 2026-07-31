@@ -40,6 +40,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   // is left inconsistent and a second launch() call on the same object
   // silently hangs) — build a fresh Telegraf each attempt instead.
   private launchWithRetry(attempt = 1) {
+    this.logger.log(`Telegram: launch attempt ${attempt} starting`);
     const bot = new Telegraf(this.token!);
     bot.catch((err, ctx) => {
       this.logger.error(`Unhandled error in Telegram handler: ${(err as Error).message}`, (err as Error).stack);
@@ -54,12 +55,20 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('Telegram bot started (long polling).');
       })
       .catch((err) => {
-        this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
-        // Keeps retrying indefinitely (capped backoff) rather than giving up —
-        // a stale container from a previous deploy can hold the getUpdates
-        // lock longer than a few quick attempts would cover.
-        const delay = Math.min(attempt * 5_000, 30_000);
-        setTimeout(() => this.launchWithRetry(attempt + 1), delay);
+        try {
+          this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
+          // Keeps retrying indefinitely (capped backoff) rather than giving up —
+          // a stale container from a previous deploy can hold the getUpdates
+          // lock longer than a few quick attempts would cover.
+          const delay = Math.min(attempt * 5_000, 30_000);
+          this.logger.log(`Telegram: retrying in ${delay}ms`);
+          setTimeout(() => {
+            this.logger.log('Telegram: retry timer fired');
+            this.launchWithRetry(attempt + 1);
+          }, delay);
+        } catch (innerErr) {
+          this.logger.error(`Telegram: error inside retry scheduling: ${(innerErr as Error).message}`);
+        }
       });
   }
 

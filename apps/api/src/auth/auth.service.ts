@@ -4,9 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-
-// Fake starting cash for the paper-trading practice mode — not real money.
-const STARTING_CASH_BALANCE = 100_000;
+import { STARTING_CASH_BALANCE } from '../common/constants';
 
 export interface AuthResult {
   accessToken: string;

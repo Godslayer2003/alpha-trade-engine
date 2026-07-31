@@ -39,6 +39,11 @@ enum TradeSide {
   SELL
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 model User {
   id             String          @id @default(uuid())
   email          String          @unique
@@ -66,6 +71,18 @@ model UserProfile {
   investmentGoal    String?
   timeHorizonYears  Int?
   experienceLevel   String?
+  age               Int?
+  gender            Gender?
+  profilePictureUrl String?
+
+  // Notification preferences (daily portfolio report).
+  notificationEmail    String?
+  dailyReportEnabled   Boolean   @default(false)
+  dailyReportTime      String    @default("07:00")
+  dailyReportTimezone  String    @default("UTC")
+  dailyReportChannels  String[]  @default([])
+  lastDailyReportSentAt DateTime?
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 }

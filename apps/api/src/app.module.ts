@@ -1,5 +1,6 @@
 import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AnalysisModule } from './analysis/analysis.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { AuthModule } from './auth/auth.module';
@@ -13,9 +14,12 @@ import { ProfileModule } from './profile/profile.module';
 import { RecommendationModule } from './recommendations/recommendation.module';
 import { ReportsModule } from './reports/reports.module';
 import { TelegramModule } from './telegram/telegram.module';
+import { EmailModule } from './email/email.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     PrismaModule,
     AnalysisModule,
     BrokerModule,
@@ -29,6 +33,8 @@ import { TelegramModule } from './telegram/telegram.module';
     RecommendationModule,
     ReportsModule,
     TelegramModule,
+    EmailModule,
+    NotificationsModule,
   ],
   providers: [
     {

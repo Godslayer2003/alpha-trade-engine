@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketService } from '../market/market.service';
 import { TradeDto } from './dto/trade.dto';
+import { STARTING_CASH_BALANCE } from '../common/constants';
 
 @Injectable()
 export class PortfolioService {
@@ -128,6 +129,22 @@ export class PortfolioService {
       where: { portfolioId: portfolio.id },
       orderBy: { executedAt: 'desc' },
     });
+  }
+
+  /** Wipes trade history and holdings, restoring cash to the original starting balance. */
+  async resetPortfolio(userId: string) {
+    const portfolio = await this.findPortfolioOrThrow(userId);
+
+    await this.prisma.$transaction([
+      this.prisma.trade.deleteMany({ where: { portfolioId: portfolio.id } }),
+      this.prisma.holding.deleteMany({ where: { portfolioId: portfolio.id } }),
+      this.prisma.portfolio.update({
+        where: { id: portfolio.id },
+        data: { cashBalance: STARTING_CASH_BALANCE, totalValue: STARTING_CASH_BALANCE },
+      }),
+    ]);
+
+    return this.getPortfolio(userId);
   }
 
   async executeTrade(userId: string, dto: TradeDto) {

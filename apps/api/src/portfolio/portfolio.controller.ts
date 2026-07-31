@@ -24,6 +24,11 @@ export class PortfolioController {
     return this.portfolioService.getPerformance(user.userId);
   }
 
+  @Post('reset')
+  resetPortfolio(@CurrentUser() user: AuthenticatedUser) {
+    return this.portfolioService.resetPortfolio(user.userId);
+  }
+
   @Post('trade')
   executeTrade(@CurrentUser() user: AuthenticatedUser, @Body() dto: TradeDto) {
     return this.portfolioService.executeTrade(user.userId, dto);

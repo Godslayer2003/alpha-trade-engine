@@ -21,6 +21,16 @@ export enum RiskTolerance {
   AGGRESSIVE = 'AGGRESSIVE',
 }
 
+export enum Gender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+}
+
+export enum NotificationChannel {
+  TELEGRAM = 'TELEGRAM',
+  EMAIL = 'EMAIL',
+}
+
 // Determines which upstream market-data source a symbol is resolved against
 // (see packages/ai-engine/app/data_sources). EQUITY covers stocks/ETFs/indices,
 // COMMODITY covers futures (oil, gold, ...) — both via the same Yahoo Finance

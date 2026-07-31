@@ -9,5 +9,6 @@ import { TelegramService } from './telegram.service';
   imports: [PortfolioModule, AnalysisModule, AssistantModule],
   controllers: [TelegramController],
   providers: [TelegramService],
+  exports: [TelegramService],
 })
 export class TelegramModule {}

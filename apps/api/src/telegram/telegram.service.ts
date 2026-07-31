@@ -76,6 +76,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.bot?.stop('module_destroy');
   }
 
+  /** Proactive push (e.g. from the daily-report cron), separate from the reactive command handlers below. */
+  async sendMessage(chatId: string, text: string): Promise<void> {
+    if (!this.bot) {
+      throw new Error('Telegram bot is not currently running — cannot send message.');
+    }
+    await this.bot.telegram.sendMessage(chatId, text);
+  }
+
   async createLinkCode(userId: string): Promise<string> {
     const code = randomBytes(4).toString('hex');
     await this.prisma.telegramLink.upsert({

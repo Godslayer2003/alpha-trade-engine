@@ -82,6 +82,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         if (generation !== this.launchGeneration) return;
         try {
           this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
+          // A timed-out launch() may have already opened a real getUpdates
+          // connection in the background before we gave up waiting on it —
+          // left running, that zombie poller conflicts with (and can
+          // itself cause 409s / hangs on) every subsequent attempt in this
+          // same process. stop() is safe to call even if launch() never
+          // actually got that far.
+          try {
+            bot.stop('launch_attempt_failed');
+          } catch {
+            // no-op — nothing to stop if launch() failed before connecting
+          }
           // Keeps retrying indefinitely (capped backoff) rather than giving up —
           // a stale container from a previous deploy can hold the getUpdates
           // lock longer than a few quick attempts would cover.

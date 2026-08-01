@@ -41,14 +41,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   // is left inconsistent and a second launch() call on the same object
   // silently hangs) — build a fresh Telegraf each attempt instead.
   //
-  // launch() itself can also silently hang (observed in production: one
-  // attempt logged "starting" and then neither resolved nor rejected for
-  // 8+ minutes, leaving `bot` permanently null with no further retries).
-  // Racing it against a timeout bounds every attempt so a single hung
-  // launch() can never wedge recovery forever. `launchGeneration` guards
-  // against a timed-out attempt's launch() resolving/rejecting later and
-  // clobbering a subsequent (possibly already-successful) attempt.
-  private static readonly LAUNCH_TIMEOUT_MS = 20_000;
+  // Telegraf's launch() (see node_modules/telegraf/lib/telegraf.js) does
+  // `await this.startPolling(...)`, which awaits an infinite polling loop
+  // — it does NOT resolve on a successful connection, only once the bot is
+  // stopped. It only *rejects*, and does so quickly (within a few
+  // seconds), if something fails before the loop takes over: a bad token,
+  // or a 409/401 on the very first getUpdates call. So "launch() resolved"
+  // can never be used as a success signal — treat the absence of a fast
+  // rejection within a grace window as success instead.
+  private static readonly LAUNCH_GRACE_MS = 8_000;
 
   private launchWithRetry(attempt = 1) {
     const generation = ++this.launchGeneration;
@@ -60,52 +61,34 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
     this.registerHandlers(bot);
 
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`launch() did not settle within ${TelegramService.LAUNCH_TIMEOUT_MS}ms`)),
-        TelegramService.LAUNCH_TIMEOUT_MS,
-      ),
-    );
+    let markedRunning = false;
 
-    Promise.race([bot.launch(), timeout])
-      .then(() => {
-        if (generation !== this.launchGeneration) {
-          // A later attempt already took over (this one timed out and a
-          // retry was scheduled) — don't run two pollers in this process.
-          bot.stop('superseded');
-          return;
-        }
-        this.bot = bot;
-        this.logger.log('Telegram bot started (long polling).');
-      })
-      .catch((err) => {
-        if (generation !== this.launchGeneration) return;
-        try {
-          this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
-          // A timed-out launch() may have already opened a real getUpdates
-          // connection in the background before we gave up waiting on it —
-          // left running, that zombie poller conflicts with (and can
-          // itself cause 409s / hangs on) every subsequent attempt in this
-          // same process. stop() is safe to call even if launch() never
-          // actually got that far.
-          try {
-            bot.stop('launch_attempt_failed');
-          } catch {
-            // no-op — nothing to stop if launch() failed before connecting
-          }
-          // Keeps retrying indefinitely (capped backoff) rather than giving up —
-          // a stale container from a previous deploy can hold the getUpdates
-          // lock longer than a few quick attempts would cover.
-          const delay = Math.min(attempt * 5_000, 30_000);
-          this.logger.log(`Telegram: retrying in ${delay}ms`);
-          setTimeout(() => {
-            this.logger.log('Telegram: retry timer fired');
-            this.launchWithRetry(attempt + 1);
-          }, delay);
-        } catch (innerErr) {
-          this.logger.error(`Telegram: error inside retry scheduling: ${(innerErr as Error).message}`);
-        }
-      });
+    bot.launch().catch((err) => {
+      if (generation !== this.launchGeneration) return;
+      if (markedRunning) {
+        // Was healthy past the grace window, but the connection has now
+        // genuinely failed (e.g. a conflicting poller started later) —
+        // clear it so sendMessage() doesn't keep trying a dead instance.
+        this.bot = null;
+      }
+      this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
+      // Keeps retrying indefinitely (capped backoff) rather than giving up —
+      // a stale container from a previous deploy can hold the getUpdates
+      // lock longer than a few quick attempts would cover.
+      const delay = Math.min(attempt * 5_000, 30_000);
+      this.logger.log(`Telegram: retrying in ${delay}ms`);
+      setTimeout(() => {
+        this.logger.log('Telegram: retry timer fired');
+        this.launchWithRetry(attempt + 1);
+      }, delay);
+    });
+
+    setTimeout(() => {
+      if (generation !== this.launchGeneration) return;
+      markedRunning = true;
+      this.bot = bot;
+      this.logger.log('Telegram bot started (long polling).');
+    }, TelegramService.LAUNCH_GRACE_MS);
   }
 
   onModuleDestroy() {

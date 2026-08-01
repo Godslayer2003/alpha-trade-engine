@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, LineData, IChartApi } from 'lightweight-charts';
+import { createChart, ColorType, LineData, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { fetchPerformance, type Performance } from '@/lib/api-client';
@@ -19,6 +19,7 @@ export function PerformanceDashboard() {
   const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const [performance, setPerformance] = useState<Performance | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,23 +63,29 @@ export function PerformanceDashboard() {
     const chart = chartRef.current;
     chart.applyOptions({ width: containerRef.current.clientWidth });
 
+    // Swap the series out directly rather than via a returned cleanup
+    // function — a separate unmount-only effect below also tears the whole
+    // chart down, and relying on two independent cleanups to race safely
+    // (removeSeries after the chart itself may already be disposed) isn't
+    // guaranteed. This way there's exactly one teardown path.
+    if (seriesRef.current) {
+      chart.removeSeries(seriesRef.current);
+    }
     const series = chart.addLineSeries({ color: '#34d399', lineWidth: 2 });
+    seriesRef.current = series;
     const data: LineData[] = performance.equityCurve.map((p) => ({
       time: Math.floor(new Date(p.t).getTime() / 1000) as LineData['time'],
       value: p.value,
     }));
     series.setData(data);
     chart.timeScale().fitContent();
-
-    return () => {
-      chart.removeSeries(series);
-    };
   }, [performance]);
 
   useEffect(() => {
     return () => {
       chartRef.current?.remove();
       chartRef.current = null;
+      seriesRef.current = null;
     };
   }, []);
 

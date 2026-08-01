@@ -328,7 +328,7 @@ export async function updateProfile(token: string, input: ProfileInput): Promise
   return res.json();
 }
 
-export async function sendTestNotification(token: string): Promise<{ sent: string[] }> {
+export async function sendTestNotification(token: string): Promise<{ sent: string[]; errors: string[] }> {
   const res = await fetch(`${API_URL}/api/v1/notifications/test`, {
     method: 'POST',
     headers: authHeaders(token),

@@ -25,22 +25,35 @@ export class NotificationsController {
     }
 
     const sent: string[] = [];
+    const errors: string[] = [];
 
+    // Each channel is isolated — one misconfigured/failing channel (e.g. no
+    // RESEND_API_KEY set) must not mask a channel that actually succeeded.
     if (profile.dailyReportChannels.includes('TELEGRAM')) {
-      const link = await this.prisma.telegramLink.findUnique({ where: { userId: user.userId } });
-      if (link?.chatId) {
-        const text = await this.notificationsService.buildReportText(user.userId);
-        await this.telegramService.sendMessage(link.chatId, text);
-        sent.push('TELEGRAM');
+      try {
+        const link = await this.prisma.telegramLink.findUnique({ where: { userId: user.userId } });
+        if (!link?.chatId) {
+          errors.push('Telegram: not linked yet — use "Connect Telegram" first.');
+        } else {
+          const text = await this.notificationsService.buildReportText(user.userId);
+          await this.telegramService.sendMessage(link.chatId, text);
+          sent.push('TELEGRAM');
+        }
+      } catch (err) {
+        errors.push(`Telegram: ${(err as Error).message}`);
       }
     }
 
     if (profile.dailyReportChannels.includes('EMAIL')) {
-      const html = await this.notificationsService.buildReportHtml(user.userId);
-      await this.emailService.sendDailyReport(profile.notificationEmail ?? user.email, 'Your Daily Alpha-Trade Report', html);
-      sent.push('EMAIL');
+      try {
+        const html = await this.notificationsService.buildReportHtml(user.userId);
+        await this.emailService.sendDailyReport(profile.notificationEmail ?? user.email, 'Your Daily Alpha-Trade Report', html);
+        sent.push('EMAIL');
+      } catch (err) {
+        errors.push(`Email: ${(err as Error).message}`);
+      }
     }
 
-    return { sent };
+    return { sent, errors };
   }
 }

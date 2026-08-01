@@ -57,17 +57,30 @@ export class NotificationsService {
     notificationEmail: string | null,
     channels: string[],
   ) {
+    // Each channel is isolated so one failing channel (e.g. no
+    // RESEND_API_KEY) can't stop a working channel from sending, and can't
+    // stop lastDailyReportSentAt from being recorded in handleDailyReports
+    // below — which would otherwise leave the user permanently "due" and
+    // re-triggered on every 5-minute cron tick.
     if (channels.includes('TELEGRAM')) {
-      const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
-      if (link?.chatId) {
-        const text = await this.buildReportText(userId);
-        await this.telegramService.sendMessage(link.chatId, text);
+      try {
+        const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
+        if (link?.chatId) {
+          const text = await this.buildReportText(userId);
+          await this.telegramService.sendMessage(link.chatId, text);
+        }
+      } catch (err) {
+        this.logger.warn(`Daily report Telegram send failed for user ${userId}: ${(err as Error).message}`);
       }
     }
 
     if (channels.includes('EMAIL')) {
-      const html = await this.buildReportHtml(userId);
-      await this.emailService.sendDailyReport(notificationEmail ?? accountEmail, 'Your Daily Alpha-Trade Report', html);
+      try {
+        const html = await this.buildReportHtml(userId);
+        await this.emailService.sendDailyReport(notificationEmail ?? accountEmail, 'Your Daily Alpha-Trade Report', html);
+      } catch (err) {
+        this.logger.warn(`Daily report Email send failed for user ${userId}: ${(err as Error).message}`);
+      }
     }
   }
 

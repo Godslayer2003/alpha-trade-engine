@@ -142,8 +142,9 @@ export default function SettingsPage() {
     setTestResult(null);
     setNotifError(null);
     try {
-      const { sent } = await sendTestNotification(token);
-      setTestResult(sent.length > 0 ? `Sent via ${sent.join(', ')}.` : 'No channel could be reached — check your setup below.');
+      const { sent, errors } = await sendTestNotification(token);
+      setTestResult(sent.length > 0 ? `Sent via ${sent.join(', ')}.` : null);
+      setNotifError(errors.length > 0 ? errors.join(' ') : null);
     } catch (err) {
       setNotifError((err as Error).message);
     } finally {

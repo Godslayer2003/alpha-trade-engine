@@ -22,9 +22,16 @@ const REPORT_MONTHS = 4;
 
 export function CompanyReportsWidget() {
   const [symbol, setSymbol] = useState(COMPANIES[0].symbol);
+  const [draft, setDraft] = useState('');
   const [report, setReport] = useState<AiReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  function submitSearch() {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    setSymbol(trimmed.toUpperCase());
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +57,27 @@ export function CompanyReportsWidget() {
 
   return (
     <div className="space-y-3">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submitSearch();
+        }}
+        className="flex items-center gap-2"
+      >
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Look up any company's most recent report (e.g. AMZN)"
+          className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        />
+        <button
+          type="submit"
+          className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium whitespace-nowrap"
+        >
+          Search
+        </button>
+      </form>
+
       <div className="flex flex-wrap gap-2">
         {COMPANIES.map((c) => (
           <button

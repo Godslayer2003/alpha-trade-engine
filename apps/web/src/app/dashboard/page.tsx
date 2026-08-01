@@ -61,9 +61,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
-            <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">
-              Why Is {symbol} Moving?
-            </h2>
+            <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Market News Explainer</h2>
             <TradeNewsWidget symbol={symbol} assetClass={assetClass} />
           </div>
 

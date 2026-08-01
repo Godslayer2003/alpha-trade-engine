@@ -379,6 +379,17 @@ export async function createTelegramLinkCode(token: string): Promise<string> {
   return body.code;
 }
 
+export interface TelegramStatus {
+  linked: boolean;
+  linkedAt: string | null;
+}
+
+export async function fetchTelegramStatus(token: string): Promise<TelegramStatus> {
+  const res = await fetch(`${API_URL}/api/v1/telegram/status`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not check Telegram link status');
+  return res.json();
+}
+
 // --- AI insight reports ---
 
 export interface AiReport {

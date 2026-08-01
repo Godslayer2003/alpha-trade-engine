@@ -84,6 +84,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     await this.bot.telegram.sendMessage(chatId, text);
   }
 
+  async getLinkStatus(userId: string): Promise<{ linked: boolean; linkedAt: string | null }> {
+    const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
+    return { linked: !!link?.chatId, linkedAt: link?.linkedAt?.toISOString() ?? null };
+  }
+
   async createLinkCode(userId: string): Promise<string> {
     const code = randomBytes(4).toString('hex');
     await this.prisma.telegramLink.upsert({

@@ -13,6 +13,7 @@ const currency = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionD
 export class TelegramService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegramService.name);
   private bot: Telegraf | null = null;
+  private launchGeneration = 0;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -39,7 +40,18 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   // already rejected can't just be re-launched (its internal polling state
   // is left inconsistent and a second launch() call on the same object
   // silently hangs) — build a fresh Telegraf each attempt instead.
+  //
+  // launch() itself can also silently hang (observed in production: one
+  // attempt logged "starting" and then neither resolved nor rejected for
+  // 8+ minutes, leaving `bot` permanently null with no further retries).
+  // Racing it against a timeout bounds every attempt so a single hung
+  // launch() can never wedge recovery forever. `launchGeneration` guards
+  // against a timed-out attempt's launch() resolving/rejecting later and
+  // clobbering a subsequent (possibly already-successful) attempt.
+  private static readonly LAUNCH_TIMEOUT_MS = 20_000;
+
   private launchWithRetry(attempt = 1) {
+    const generation = ++this.launchGeneration;
     this.logger.log(`Telegram: launch attempt ${attempt} starting`);
     const bot = new Telegraf(this.token!);
     bot.catch((err, ctx) => {
@@ -48,13 +60,26 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
     this.registerHandlers(bot);
 
-    bot
-      .launch()
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`launch() did not settle within ${TelegramService.LAUNCH_TIMEOUT_MS}ms`)),
+        TelegramService.LAUNCH_TIMEOUT_MS,
+      ),
+    );
+
+    Promise.race([bot.launch(), timeout])
       .then(() => {
+        if (generation !== this.launchGeneration) {
+          // A later attempt already took over (this one timed out and a
+          // retry was scheduled) — don't run two pollers in this process.
+          bot.stop('superseded');
+          return;
+        }
         this.bot = bot;
         this.logger.log('Telegram bot started (long polling).');
       })
       .catch((err) => {
+        if (generation !== this.launchGeneration) return;
         try {
           this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
           // Keeps retrying indefinitely (capped backoff) rather than giving up —

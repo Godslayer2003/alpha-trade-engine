@@ -1,9 +1,9 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-// Not yet imported into AppModule — no module currently needs a live DB
-// connection. Add it to a module's providers once one does; onModuleInit
-// will connect lazily at that point rather than at app bootstrap.
+// Registered globally via PrismaModule (see prisma.module.ts) — every
+// module gets this without re-importing it. onModuleInit/onModuleDestroy
+// tie the connection lifecycle to Nest's app bootstrap/shutdown.
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {

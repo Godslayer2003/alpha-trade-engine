@@ -148,97 +148,89 @@ export class PortfolioService {
   }
 
   async executeTrade(userId: string, dto: TradeDto) {
-    const portfolio = await this.findPortfolioOrThrow(userId);
+    const portfolioId = (await this.findPortfolioOrThrow(userId)).id;
     const quote = await this.marketService.getQuote(dto.symbol, dto.assetClass);
     const cost = quote.price * dto.quantity;
 
-    const existingHolding = await this.prisma.holding.findUnique({
-      where: {
-        portfolioId_ticker_assetClass: {
-          portfolioId: portfolio.id,
+    // Everything below — including the sufficiency checks — runs inside one
+    // transaction, guarded with a WHERE clause on the very value being
+    // checked. Checking cashBalance/quantity before the transaction (against
+    // a snapshot read moments earlier) would let two overlapping trades both
+    // pass the check and both commit, e.g. double-spending cash on a
+    // double-clicked buy. The guarded update makes the check-and-write a
+    // single atomic DB operation instead.
+    await this.prisma.$transaction(async (tx) => {
+      const existingHolding = await tx.holding.findUnique({
+        where: {
+          portfolioId_ticker_assetClass: { portfolioId, ticker: dto.symbol, assetClass: dto.assetClass },
+        },
+      });
+
+      if (dto.side === 'BUY') {
+        const debited = await tx.portfolio.updateMany({
+          where: { id: portfolioId, cashBalance: { gte: cost } },
+          data: { cashBalance: { decrement: cost } },
+        });
+        if (debited.count === 0) {
+          const { cashBalance } = await tx.portfolio.findUniqueOrThrow({ where: { id: portfolioId } });
+          throw new BadRequestException(
+            `Insufficient cash: trade costs ${cost.toFixed(2)}, available ${cashBalance.toFixed(2)}.`,
+          );
+        }
+
+        if (existingHolding) {
+          await tx.holding.update({
+            where: { id: existingHolding.id },
+            data: {
+              quantity: existingHolding.quantity + dto.quantity,
+              averagePrice:
+                (existingHolding.averagePrice * existingHolding.quantity + cost) /
+                (existingHolding.quantity + dto.quantity),
+              currentPrice: quote.price,
+            },
+          });
+        } else {
+          await tx.holding.create({
+            data: {
+              portfolioId,
+              ticker: dto.symbol,
+              assetClass: dto.assetClass,
+              quantity: dto.quantity,
+              averagePrice: quote.price,
+              currentPrice: quote.price,
+              unrealizedPnL: 0,
+            },
+          });
+        }
+      } else {
+        const sold = await tx.holding.updateMany({
+          where: { id: existingHolding?.id ?? '', quantity: { gte: dto.quantity } },
+          data: { quantity: { decrement: dto.quantity }, currentPrice: quote.price },
+        });
+        if (sold.count === 0) {
+          throw new BadRequestException(
+            `Insufficient shares: you hold ${existingHolding?.quantity ?? 0} of ${dto.symbol}, tried to sell ${dto.quantity}.`,
+          );
+        }
+        // existingHolding.id is defined whenever sold.count > 0 above.
+        await tx.holding.deleteMany({ where: { id: existingHolding!.id, quantity: 0 } });
+        await tx.portfolio.update({
+          where: { id: portfolioId },
+          data: { cashBalance: { increment: cost } },
+        });
+      }
+
+      await tx.trade.create({
+        data: {
+          portfolioId,
           ticker: dto.symbol,
           assetClass: dto.assetClass,
+          side: dto.side,
+          quantity: dto.quantity,
+          price: quote.price,
         },
-      },
+      });
     });
-
-    if (dto.side === 'BUY') {
-      if (cost > portfolio.cashBalance) {
-        throw new BadRequestException(
-          `Insufficient cash: trade costs ${cost.toFixed(2)}, available ${portfolio.cashBalance.toFixed(2)}.`,
-        );
-      }
-
-      await this.prisma.$transaction([
-        this.prisma.portfolio.update({
-          where: { id: portfolio.id },
-          data: { cashBalance: { decrement: cost } },
-        }),
-        existingHolding
-          ? this.prisma.holding.update({
-              where: { id: existingHolding.id },
-              data: {
-                quantity: existingHolding.quantity + dto.quantity,
-                averagePrice:
-                  (existingHolding.averagePrice * existingHolding.quantity + cost) /
-                  (existingHolding.quantity + dto.quantity),
-                currentPrice: quote.price,
-              },
-            })
-          : this.prisma.holding.create({
-              data: {
-                portfolioId: portfolio.id,
-                ticker: dto.symbol,
-                assetClass: dto.assetClass,
-                quantity: dto.quantity,
-                averagePrice: quote.price,
-                currentPrice: quote.price,
-                unrealizedPnL: 0,
-              },
-            }),
-        this.prisma.trade.create({
-          data: {
-            portfolioId: portfolio.id,
-            ticker: dto.symbol,
-            assetClass: dto.assetClass,
-            side: 'BUY',
-            quantity: dto.quantity,
-            price: quote.price,
-          },
-        }),
-      ]);
-    } else {
-      if (!existingHolding || existingHolding.quantity < dto.quantity) {
-        throw new BadRequestException(
-          `Insufficient shares: you hold ${existingHolding?.quantity ?? 0} of ${dto.symbol}, tried to sell ${dto.quantity}.`,
-        );
-      }
-
-      const remaining = existingHolding.quantity - dto.quantity;
-
-      await this.prisma.$transaction([
-        this.prisma.portfolio.update({
-          where: { id: portfolio.id },
-          data: { cashBalance: { increment: cost } },
-        }),
-        remaining === 0
-          ? this.prisma.holding.delete({ where: { id: existingHolding.id } })
-          : this.prisma.holding.update({
-              where: { id: existingHolding.id },
-              data: { quantity: remaining, currentPrice: quote.price },
-            }),
-        this.prisma.trade.create({
-          data: {
-            portfolioId: portfolio.id,
-            ticker: dto.symbol,
-            assetClass: dto.assetClass,
-            side: 'SELL',
-            quantity: dto.quantity,
-            price: quote.price,
-          },
-        }),
-      ]);
-    }
 
     return this.getPortfolio(userId);
   }

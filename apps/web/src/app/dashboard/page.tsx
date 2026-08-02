@@ -9,6 +9,7 @@ import { BrokerRecommendationWidget } from '@/components/BrokerRecommendationWid
 import { SectorRecommendationWidget } from '@/components/SectorRecommendationWidget';
 import { MarketHoursWidget } from '@/components/MarketHoursWidget';
 import { MoversWidget } from '@/components/MoversWidget';
+import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 import { TradeNewsWidget } from '@/components/TradeNewsWidget';
 import { CompanyReportsWidget } from '@/components/CompanyReportsWidget';
 import { AuthPanel } from '@/components/AuthPanel';
@@ -40,17 +41,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="mb-8 px-4 py-3 rounded-xl bg-rose-100 dark:bg-rose-950 border-2 border-rose-400 dark:border-rose-800">
-        <p className="text-base sm:text-lg font-extrabold text-rose-700 dark:text-rose-400 text-center">
-          Rules-based technical analysis — NOT FINANCIAL ADVICE
-        </p>
-        <p className="text-sm font-semibold text-rose-700 dark:text-rose-400 text-center mt-1">
-          All trading decisions and their outcomes are your sole responsibility. See our{' '}
-          <Link href="/disclaimer" className="underline hover:text-rose-900 dark:hover:text-rose-200">
-            Disclaimer &amp; Terms
-          </Link>.
-        </p>
-      </div>
+      <DisclaimerBanner />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

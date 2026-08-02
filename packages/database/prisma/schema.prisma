@@ -195,18 +195,20 @@ model Holding {
   averagePrice  Float
   currentPrice  Float
   unrealizedPnL Float
+  stopLossPrice Float?
 
   @@unique([portfolioId, ticker, assetClass])
 }
 
 model Trade {
-  id          String     @id @default(uuid())
-  portfolioId String
-  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  ticker      String
-  assetClass  AssetClass
-  side        TradeSide
-  quantity    Float
-  price       Float
-  executedAt  DateTime   @default(now())
+  id                  String     @id @default(uuid())
+  portfolioId         String
+  portfolio           Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  ticker              String
+  assetClass          AssetClass
+  side                TradeSide
+  quantity            Float
+  price               Float
+  triggeredByStopLoss Boolean    @default(false)
+  executedAt          DateTime   @default(now())
 }

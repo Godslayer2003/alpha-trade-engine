@@ -152,6 +152,7 @@ export interface Holding {
   averagePrice: number;
   currentPrice: number;
   unrealizedPnL: number;
+  stopLossPrice: number | null;
 }
 
 export interface Portfolio {
@@ -168,6 +169,7 @@ export interface Trade {
   side: 'BUY' | 'SELL';
   quantity: number;
   price: number;
+  triggeredByStopLoss: boolean;
   executedAt: string;
 }
 
@@ -197,6 +199,16 @@ export async function postTrade(
     body: JSON.stringify(params),
   });
   if (!res.ok) return throwOnError(res, 'Trade failed');
+  return res.json();
+}
+
+export async function setStopLoss(token: string, holdingId: string, stopLossPrice: number | null): Promise<Portfolio> {
+  const res = await fetch(`${API_URL}/api/v1/portfolio/holdings/${holdingId}/stop-loss`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({ stopLossPrice }),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not update stop-loss');
   return res.json();
 }
 

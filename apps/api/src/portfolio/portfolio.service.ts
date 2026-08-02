@@ -235,6 +235,26 @@ export class PortfolioService {
     return this.getPortfolio(userId);
   }
 
+  async setStopLoss(userId: string, holdingId: string, stopLossPrice: number | null) {
+    const portfolio = await this.findPortfolioOrThrow(userId);
+    const holding = portfolio.holdings.find((h) => h.id === holdingId);
+    if (!holding) {
+      throw new NotFoundException('Holding not found.');
+    }
+    if (stopLossPrice !== null && stopLossPrice >= holding.currentPrice) {
+      throw new BadRequestException(
+        `Stop-loss must be below the current price (${holding.currentPrice.toFixed(2)}).`,
+      );
+    }
+
+    await this.prisma.holding.update({
+      where: { id: holdingId },
+      data: { stopLossPrice },
+    });
+
+    return this.getPortfolio(userId);
+  }
+
   private async findPortfolioOrThrow(userId: string) {
     const portfolio = await this.prisma.portfolio.findFirst({
       where: { userId },

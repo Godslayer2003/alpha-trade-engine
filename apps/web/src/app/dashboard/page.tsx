@@ -27,12 +27,9 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 p-6">
-      <header className="flex flex-wrap justify-between items-center gap-3 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
+      <header className="flex flex-wrap justify-between items-center gap-3 mb-3 pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">Alpha-Trade Engine // Terminal</h1>
         <div className="flex items-center gap-4">
-          <span className="text-xs px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-            Rules-based technical analysis — not financial advice
-          </span>
           <Link href="/onboarding" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
             Risk questionnaire
           </Link>
@@ -42,6 +39,18 @@ export default function DashboardPage() {
           <AuthPanel />
         </div>
       </header>
+
+      <div className="mb-8 px-4 py-3 rounded-xl bg-rose-100 dark:bg-rose-950 border-2 border-rose-400 dark:border-rose-800">
+        <p className="text-base sm:text-lg font-extrabold text-rose-700 dark:text-rose-400 text-center">
+          Rules-based technical analysis — NOT FINANCIAL ADVICE
+        </p>
+        <p className="text-sm font-semibold text-rose-700 dark:text-rose-400 text-center mt-1">
+          All trading decisions and their outcomes are your sole responsibility. See our{' '}
+          <Link href="/disclaimer" className="underline hover:text-rose-900 dark:hover:text-rose-200">
+            Disclaimer &amp; Terms
+          </Link>.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

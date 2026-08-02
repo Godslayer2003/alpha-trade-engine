@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { useAuth } from '@/lib/auth-context';
-import { fetchPortfolio, postTrade, type Portfolio } from '@/lib/api-client';
+import { fetchPortfolio, postTrade, setStopLoss, type Portfolio } from '@/lib/api-client';
 
 interface PortfolioPanelProps {
   symbol: string;
@@ -20,6 +20,8 @@ export function PortfolioPanel({ symbol, assetClass }: PortfolioPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('1');
   const [trading, setTrading] = useState(false);
+  const [stopLossDrafts, setStopLossDrafts] = useState<Record<string, string>>({});
+  const [stopLossBusy, setStopLossBusy] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -61,6 +63,37 @@ export function PortfolioPanel({ symbol, assetClass }: PortfolioPanelProps) {
       setError((err as Error).message);
     } finally {
       setTrading(false);
+    }
+  }
+
+  async function handleSetStopLoss(holdingId: string) {
+    if (!token) return;
+    const draft = stopLossDrafts[holdingId];
+    const price = draft ? Number(draft) : null;
+    if (draft && (!price || price <= 0)) return;
+
+    setStopLossBusy(holdingId);
+    setError(null);
+    try {
+      setPortfolio(await setStopLoss(token, holdingId, price));
+      setStopLossDrafts((prev) => ({ ...prev, [holdingId]: '' }));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setStopLossBusy(null);
+    }
+  }
+
+  async function handleClearStopLoss(holdingId: string) {
+    if (!token) return;
+    setStopLossBusy(holdingId);
+    setError(null);
+    try {
+      setPortfolio(await setStopLoss(token, holdingId, null));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setStopLossBusy(null);
     }
   }
 
@@ -135,6 +168,40 @@ export function PortfolioPanel({ symbol, assetClass }: PortfolioPanelProps) {
               <p className="text-slate-500 mt-0.5">
                 Avg {currency(h.averagePrice)} · Now {currency(h.currentPrice)}
               </p>
+
+              {h.stopLossPrice !== null ? (
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-amber-700 dark:text-amber-400">
+                    Stop-loss: {currency(h.stopLossPrice)} — auto-sells if price falls to or below this
+                  </span>
+                  <button
+                    onClick={() => handleClearStopLoss(h.id)}
+                    disabled={stopLossBusy === h.id}
+                    className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 underline disabled:opacity-50 whitespace-nowrap"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Set stop-loss price"
+                    value={stopLossDrafts[h.id] ?? ''}
+                    onChange={(e) => setStopLossDrafts((prev) => ({ ...prev, [h.id]: e.target.value }))}
+                    className="flex-1 min-w-0 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-1.5 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <button
+                    onClick={() => handleSetStopLoss(h.id)}
+                    disabled={stopLossBusy === h.id || !stopLossDrafts[h.id]}
+                    className="text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50 whitespace-nowrap"
+                  >
+                    Set
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

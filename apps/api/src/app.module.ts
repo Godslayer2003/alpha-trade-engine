@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { BrokerModule } from './broker/broker.module';
 import { MarketModule } from './market/market.module';
 import { MarketHoursModule } from './market-hours/market-hours.module';
+import { MoversModule } from './movers/movers.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SectorsModule } from './sectors/sectors.module';
@@ -27,6 +28,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     SectorsModule,
     MarketModule,
     MarketHoursModule,
+    MoversModule,
     AuthModule,
     PortfolioModule,
     AssistantModule,

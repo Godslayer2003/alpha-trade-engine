@@ -127,6 +127,13 @@ model AiReport {
   @@index([symbol, assetClass, periodLabel])
 }
 
+model MoverScan {
+  id        String   @id @default(uuid())
+  scanDate  String   @unique
+  movers    Json
+  createdAt DateTime @default(now())
+}
+
 model TelegramLink {
   id        String    @id @default(uuid())
   userId    String    @unique

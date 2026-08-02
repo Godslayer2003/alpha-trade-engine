@@ -8,6 +8,7 @@ import { StrategySelectorPanel } from '@/components/StrategySelectorPanel';
 import { BrokerRecommendationWidget } from '@/components/BrokerRecommendationWidget';
 import { SectorRecommendationWidget } from '@/components/SectorRecommendationWidget';
 import { MarketHoursWidget } from '@/components/MarketHoursWidget';
+import { MoversWidget } from '@/components/MoversWidget';
 import { TradeNewsWidget } from '@/components/TradeNewsWidget';
 import { CompanyReportsWidget } from '@/components/CompanyReportsWidget';
 import { AuthPanel } from '@/components/AuthPanel';
@@ -63,6 +64,16 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Market News Explainer</h2>
             <TradeNewsWidget symbol={symbol} assetClass={assetClass} />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Unusual Movers</h2>
+            <MoversWidget
+              onSelect={(nextClass, nextSymbol) => {
+                setAssetClass(nextClass);
+                setSymbol(nextSymbol);
+              }}
+            />
           </div>
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">

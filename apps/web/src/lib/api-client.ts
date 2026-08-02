@@ -96,6 +96,25 @@ export async function fetchMarketHours(countries?: MarketCountry[]): Promise<Mar
   return res.json();
 }
 
+// --- Unusual movers ---
+
+export interface Mover {
+  symbol: string;
+  assetClass: AssetClass;
+  price: number;
+  pctChange: number;
+  zScore: number;
+  asOf: string;
+}
+
+export async function fetchMovers(): Promise<Mover[]> {
+  const res = await fetch(`${API_URL}/api/v1/movers`);
+  if (!res.ok) {
+    throw new Error(`Movers request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 // --- Auth ---
 
 export interface AuthResult {

@@ -126,6 +126,12 @@ export default function DashboardPage() {
       </div>
 
       <AssistantChat symbol={symbol} assetClass={assetClass} timeframe={timeframe} />
+
+      <footer className="max-w-7xl mx-auto mt-10 pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
+        <Link href="/disclaimer" className="text-xs text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
+          Disclaimer &amp; Terms of Use — not financial advice, simulated trading only
+        </Link>
+      </footer>
     </main>
   );
 }

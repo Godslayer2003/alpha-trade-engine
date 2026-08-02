@@ -122,11 +122,11 @@ export interface AuthResult {
   user: { id: string; email: string };
 }
 
-export async function registerAccount(email: string, password: string): Promise<AuthResult> {
+export async function registerAccount(email: string, password: string, acceptedTerms: boolean): Promise<AuthResult> {
   const res = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, acceptedTerms }),
   });
   if (!res.ok) return throwOnError(res, 'Could not create account');
   return res.json();

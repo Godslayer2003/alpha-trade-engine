@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
-from . import signal_engine
+from . import agents, rag, signal_engine
 from .data_sources import binance, yahoo
 from .data_sources.common import Candle, MarketDataError, SUPPORTED_TIMEFRAMES, Timeframe
 
@@ -114,3 +114,96 @@ async def get_signal(payload: SignalRequest):
         return signal_engine.generate_signal(candles, data_source)
     except MarketDataError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+
+
+# --- RAG-grounded site assistant (AI Guide) ---
+# apps/api owns persistence of the prompt/knowledge-base/feedback (Postgres);
+# this service is stateless per request except for the in-memory chunk/
+# embedding cache in rag.py, keyed off the knowledge-base text it's handed.
+
+class AssistantChatMessage(BaseModel):
+    role: Literal['user', 'assistant']
+    content: str
+
+
+class AssistantChatRequest(BaseModel):
+    message: str
+    history: list[AssistantChatMessage] = []
+    model: str = agents.DEFAULT_MODEL
+    system_prompt: str
+    knowledge_base: str
+
+
+class Citation(BaseModel):
+    index: int
+    chunk_text: str
+    similarity: float
+
+
+class AssistantChatResponse(BaseModel):
+    reply: str
+    citations: list[Citation]
+    model: str
+    input_tokens: int
+    output_tokens: int
+    response_time_ms: int
+
+
+class AssistantChunksRequest(BaseModel):
+    knowledge_base: str
+    chunk_size: int = rag.DEFAULT_CHUNK_SIZE_TOKENS
+
+
+class ChunkResponse(BaseModel):
+    index: int
+    text: str
+    tokens: int
+
+
+@app.post("/v1/assistant/chat", response_model=AssistantChatResponse)
+async def assistant_chat(payload: AssistantChatRequest):
+    retrieved = rag.retrieve(payload.message, payload.knowledge_base)
+
+    if retrieved:
+        sources_block = '\n\n'.join(
+            f'[Source {i + 1}] (similarity {r.similarity:.2f}): {r.chunk.text}'
+            for i, r in enumerate(retrieved)
+        )
+        grounded_prompt = (
+            f'{payload.system_prompt}\n\n'
+            'You have retrieved the following knowledge base excerpts relevant to the '
+            "user's question. Answer using ONLY these excerpts — if they don't contain "
+            "the answer, say you don't have that information instead of guessing. Cite "
+            'the sources you used inline, e.g. "[Source 1]".\n\n'
+            f'{sources_block}'
+        )
+    else:
+        grounded_prompt = payload.system_prompt
+
+    history = [{'role': m.role, 'content': m.content} for m in payload.history]
+    history.append({'role': 'user', 'content': payload.message})
+
+    try:
+        result = await agents.ask_with_context(history, grounded_prompt, payload.model)
+    except agents.AgentError as err:
+        raise HTTPException(status_code=502, detail=str(err)) from err
+
+    citations = [
+        Citation(index=i + 1, chunk_text=r.chunk.text, similarity=r.similarity)
+        for i, r in enumerate(retrieved)
+    ]
+
+    return AssistantChatResponse(
+        reply=result.reply,
+        citations=citations,
+        model=payload.model,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        response_time_ms=result.response_time_ms,
+    )
+
+
+@app.post("/v1/assistant/chunks", response_model=list[ChunkResponse])
+async def assistant_chunks(payload: AssistantChunksRequest):
+    chunks = rag.chunk_text(payload.knowledge_base, payload.chunk_size)
+    return [ChunkResponse(index=c.index, text=c.text, tokens=c.tokens) for c in chunks]

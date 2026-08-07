@@ -444,23 +444,129 @@ export async function fetchReport(
   return res.json();
 }
 
-// --- AI guide chat ---
+// --- AI guide chat (RAG-grounded, via OpenRouter through packages/ai-engine) ---
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
 
+export interface Citation {
+  index: number;
+  chunkText: string;
+  similarity: number;
+}
+
+export interface AssistantChatResult {
+  reply: string;
+  citations: Citation[];
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  responseTimeMs: number;
+}
+
+// Curated so the dropdown has both free and paid options, per the model
+// picker spec — full catalog is linked out to openrouter.ai/models instead
+// of mirrored here.
+export const ASSISTANT_MODELS = [
+  { id: 'deepseek/deepseek-r1:free', label: 'DeepSeek R1 (free)' },
+  { id: 'meta-llama/llama-3.1-8b-instruct:free', label: 'Llama 3.1 8B (free)' },
+  { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini (paid)' },
+  { id: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (paid)' },
+] as const;
+
 export async function chatWithAssistant(
   messages: ChatMessage[],
   context?: Record<string, unknown>,
-): Promise<string> {
+  model?: string,
+): Promise<AssistantChatResult> {
   const res = await fetch(`${API_URL}/api/v1/assistant/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, context }),
+    body: JSON.stringify({ messages, context, model }),
   });
   if (!res.ok) return throwOnError(res, 'Assistant request failed');
-  const body = (await res.json()) as { reply: string };
-  return body.reply;
+  return res.json();
+}
+
+export async function submitAssistantFeedback(
+  token: string,
+  input: {
+    question: string;
+    answer: string;
+    rating: 'UP' | 'DOWN';
+    model: string;
+    responseTimeMs: number;
+    inputTokens: number;
+    outputTokens: number;
+  },
+): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/assistant/feedback`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not save feedback');
+}
+
+export interface AssistantConfig {
+  systemPrompt: string;
+  knowledgeBase: string;
+  updatedAt: string;
+}
+
+export async function fetchAssistantConfig(token: string): Promise<AssistantConfig> {
+  const res = await fetch(`${API_URL}/api/v1/assistant/config`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load AI guide config');
+  return res.json();
+}
+
+export async function updateAssistantConfig(
+  token: string,
+  input: { systemPrompt?: string; knowledgeBase?: string },
+): Promise<AssistantConfig> {
+  const res = await fetch(`${API_URL}/api/v1/assistant/config`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not save AI guide config');
+  return res.json();
+}
+
+export interface AssistantChunk {
+  index: number;
+  text: string;
+  tokens: number;
+}
+
+export async function fetchAssistantChunks(token: string, chunkSize?: number): Promise<AssistantChunk[]> {
+  const params = chunkSize ? `?chunkSize=${chunkSize}` : '';
+  const res = await fetch(`${API_URL}/api/v1/assistant/chunks${params}`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load chunks');
+  return res.json();
+}
+
+export interface AssistantFeedbackRow {
+  id: string;
+  question: string;
+  answer: string;
+  rating: 'UP' | 'DOWN';
+  model: string;
+  responseTimeMs: number;
+  inputTokens: number;
+  outputTokens: number;
+  createdAt: string;
+}
+
+export interface AssistantFeedbackList {
+  rows: AssistantFeedbackRow[];
+  stats: { up: number; down: number; total: number; positivePct: number };
+}
+
+export async function fetchAssistantFeedback(token: string): Promise<AssistantFeedbackList> {
+  const res = await fetch(`${API_URL}/api/v1/assistant/feedback`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load results');
+  return res.json();
 }

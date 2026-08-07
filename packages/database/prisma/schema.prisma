@@ -135,6 +135,34 @@ model MoverScan {
   createdAt DateTime @default(now())
 }
 
+enum AssistantRating {
+  UP
+  DOWN
+}
+
+// Singleton row (id fixed to "singleton") holding the live, editable AI
+// Guide prompt + knowledge base. Falls back to defaults.ts constants when
+// no row exists yet — DB-backed rather than a flat file so edits survive
+// Railway redeploys.
+model AssistantConfig {
+  id            String   @id @default("singleton")
+  systemPrompt  String
+  knowledgeBase String
+  updatedAt     DateTime @updatedAt
+}
+
+model AssistantFeedback {
+  id             String          @id @default(uuid())
+  question       String
+  answer         String
+  rating         AssistantRating
+  model          String
+  responseTimeMs Int
+  inputTokens    Int
+  outputTokens   Int
+  createdAt      DateTime        @default(now())
+}
+
 model TelegramLink {
   id        String    @id @default(uuid())
   userId    String    @unique

@@ -1,82 +1,142 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { GoogleGenAI } from '@google/genai';
+import { HttpException, Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { ChatMessageDto } from './dto/chat.dto';
+import { UpdateConfigDto } from './dto/update-config.dto';
+import { CreateFeedbackDto } from './dto/create-feedback.dto';
+import { DEFAULT_KNOWLEDGE_BASE, DEFAULT_SYSTEM_PROMPT } from './assistant.defaults';
 
-const SYSTEM_PROMPT = `You are the in-app guide for Alpha-Trade Engine, a web app that:
-- Shows real market data (stocks/ETFs/indexes via Yahoo Finance, crypto via Binance, commodities via Yahoo futures) as candlestick charts.
-- Computes trading signals using a transparent, rules-based technical-analysis engine (moving averages, RSI, MACD, ATR) — NOT a trained machine-learning model, and NOT financial advice.
-- Lets users practice with a paper-trading portfolio: fake starting cash, real market prices, no real money at risk.
-- Recommends brokers and sector/company ideas from a static curated matrix (not personalized advice).
-
-Your job is ONLY to explain what's on screen — the current signal, what an indicator means, how the paper-trading portfolio works, general concepts like risk/reward ratio. You are a read-only guide:
-- You cannot execute trades, change settings, or take any action in the app — if asked to do something, explain that they need to use the UI controls themselves.
-- Never present anything as personalized financial advice or a guarantee. If discussing a specific signal, remind the user it's rules-based technical analysis, not a prediction — but say this once, briefly, not in every reply.
-
-Reply like a normal chat assistant (think a quick Gemini or ChatGPT answer), not a report:
-- Default to 1-3 short sentences. Only go longer if the user explicitly asks for more detail or the question genuinely can't be answered in a few sentences.
-- Plain conversational prose. No headers, no bullet-point dumps, no bold-everything formatting for a simple question.
-- Answer the actual question first. Don't preface with a restatement of what was asked or a summary of the app.`;
-
-// Free-tier Gemini model — kept as low-cost/no-cost as possible for a
-// lightweight explainer widget (see conversation with the user about not
-// wanting to pay for the Anthropic API for this feature).
-const MODEL = 'gemini-3.6-flash';
-
-// Flattened into a single prompt rather than using Gemini's stateful
-// interaction-chaining (previous_interaction_id) — keeps the frontend's
-// existing "resend full history" contract simple and provider-agnostic.
-// Capped to bound token usage on the free tier.
+const CONFIG_ID = 'singleton';
+const REQUEST_TIMEOUT_MS = 30_000;
 const HISTORY_LIMIT = 6;
-const REQUEST_TIMEOUT_MS = 25_000;
+
+export interface ChatResult {
+  reply: string;
+  citations: { index: number; chunkText: string; similarity: number }[];
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  responseTimeMs: number;
+}
 
 @Injectable()
 export class AssistantService {
-  private client: GoogleGenAI | null = null;
+  private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
 
-  async chat(messages: ChatMessageDto[], context?: Record<string, unknown>): Promise<string> {
-    const client = this.getClient();
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getConfig() {
+    const existing = await this.prisma.assistantConfig.findUnique({ where: { id: CONFIG_ID } });
+    if (existing) return existing;
+
+    // Materialize the defaults on first read so the Settings page always has
+    // something to show and edit, and later reads/writes are plain upserts.
+    return this.prisma.assistantConfig.create({
+      data: { id: CONFIG_ID, systemPrompt: DEFAULT_SYSTEM_PROMPT, knowledgeBase: DEFAULT_KNOWLEDGE_BASE },
+    });
+  }
+
+  async updateConfig(dto: UpdateConfigDto) {
+    const current = await this.getConfig();
+    return this.prisma.assistantConfig.update({
+      where: { id: CONFIG_ID },
+      data: {
+        systemPrompt: dto.systemPrompt ?? current.systemPrompt,
+        knowledgeBase: dto.knowledgeBase ?? current.knowledgeBase,
+      },
+    });
+  }
+
+  async chat(messages: ChatMessageDto[], model?: string, context?: Record<string, unknown>): Promise<ChatResult> {
+    const config = await this.getConfig();
 
     const contextNote = context
       ? `\n\nCurrent app state (for your reference, not necessarily to repeat verbatim):\n${JSON.stringify(context, null, 2)}`
       : '';
 
-    const transcript = messages
-      .slice(-HISTORY_LIMIT)
-      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-      .join('\n\n');
+    const recent = messages.slice(-HISTORY_LIMIT - 1);
+    const last = recent[recent.length - 1];
+    const history = recent.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
 
-    // The SDK call has no built-in timeout — without this, a slow/hung upstream
-    // request (e.g. rate-limit backoff) leaves the caller waiting indefinitely
-    // with no error surfaced (this is what caused Telegram's /ask to go silent).
-    const interaction = await Promise.race([
-      client.interactions.create({
-        model: MODEL,
-        system_instruction: SYSTEM_PROMPT + contextNote,
-        input: transcript,
-        // Structural backstop alongside the prompt instruction above: caps
-        // runaway long answers, and "low" thinking keeps a simple explainer
-        // widget fast instead of over-deliberating short questions.
-        generation_config: { max_output_tokens: 400, thinking_level: 'low' },
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('AI guide request timed out')), REQUEST_TIMEOUT_MS),
-      ),
-    ]);
+    const body = await this.fetchJson<{
+      reply: string;
+      citations: { index: number; chunk_text: string; similarity: number }[];
+      model: string;
+      input_tokens: number;
+      output_tokens: number;
+      response_time_ms: number;
+    }>('/v1/assistant/chat', {
+      message: last.content,
+      history,
+      model: model || undefined,
+      system_prompt: config.systemPrompt + contextNote,
+      knowledge_base: config.knowledgeBase,
+    });
 
-    return interaction.output_text ?? '';
+    return {
+      reply: body.reply,
+      citations: body.citations.map((c) => ({ index: c.index, chunkText: c.chunk_text, similarity: c.similarity })),
+      model: body.model,
+      inputTokens: body.input_tokens,
+      outputTokens: body.output_tokens,
+      responseTimeMs: body.response_time_ms,
+    };
   }
 
-  private getClient(): GoogleGenAI {
-    if (this.client) return this.client;
+  async getChunks(chunkSize?: number) {
+    const config = await this.getConfig();
+    return this.fetchJson<{ index: number; text: string; tokens: number }[]>('/v1/assistant/chunks', {
+      knowledge_base: config.knowledgeBase,
+      chunk_size: chunkSize || undefined,
+    });
+  }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new ServiceUnavailableException(
-        'The AI guide is not configured on this server (missing GEMINI_API_KEY).',
+  async createFeedback(dto: CreateFeedbackDto) {
+    return this.prisma.assistantFeedback.create({ data: dto });
+  }
+
+  async listFeedback() {
+    const rows = await this.prisma.assistantFeedback.findMany({ orderBy: { createdAt: 'desc' } });
+    const up = rows.filter((r) => r.rating === 'UP').length;
+    const down = rows.filter((r) => r.rating === 'DOWN').length;
+    const total = up + down;
+    return {
+      rows,
+      stats: { up, down, total, positivePct: total > 0 ? Math.round((up / total) * 1000) / 10 : 0 },
+    };
+  }
+
+  private async fetchJson<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    // Strip undefined so FastAPI's model defaults (e.g. default model,
+    // default chunk size) kick in rather than a JSON `null` colliding with them.
+    const body = Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
+
+    let res: Response;
+    try {
+      res = await fetch(`${this.aiEngineUrl}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new HttpException(
+        `Could not reach the AI engine at ${this.aiEngineUrl}: ${(err as Error).message}`,
+        502,
       );
+    } finally {
+      clearTimeout(timeout);
     }
 
-    this.client = new GoogleGenAI({ apiKey });
-    return this.client;
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      const detail = (json && (json as { detail?: string }).detail) || `status ${res.status}`;
+      throw new HttpException(detail, res.status);
+    }
+
+    return json as T;
   }
 }

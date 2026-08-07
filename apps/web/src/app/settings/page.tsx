@@ -340,6 +340,20 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        <section className={CARD}>
+          <h2 className="text-lg font-semibold mb-2 text-slate-800 dark:text-slate-200">AI Guide</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+            Edit the chatbot&apos;s prompt and knowledge base, inspect how it&apos;s chunked for retrieval, and review
+            thumbs up/down feedback.
+          </p>
+          <Link
+            href="/settings/assistant"
+            className="inline-block text-sm px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white"
+          >
+            Open AI Guide settings
+          </Link>
+        </section>
+
         <section className={CARD + ' border-rose-300 dark:border-rose-900'}>
           <h2 className="text-lg font-semibold mb-2 text-rose-600 dark:text-rose-400">Danger Zone</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">

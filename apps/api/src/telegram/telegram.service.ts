@@ -194,8 +194,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         return;
       }
       try {
-        const reply = await this.assistantService.chat([{ role: 'user', content: question }]);
-        await ctx.reply(reply);
+        const result = await this.assistantService.chat([{ role: 'user', content: question }]);
+        await ctx.reply(result.reply);
       } catch (err) {
         await ctx.reply(`Could not reach the AI guide: ${(err as Error).message}`);
       }

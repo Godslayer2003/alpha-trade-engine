@@ -27,4 +27,8 @@ export class ChatRequestDto {
   @IsOptional()
   @IsObject()
   context?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
 }

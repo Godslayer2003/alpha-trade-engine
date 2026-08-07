@@ -6,10 +6,21 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 
-# Local dev keeps a single .env at the monorepo root (shared with the Node
-# apps); Railway sets real env vars in production, where this is a no-op
-# since there's no .env file to find.
-load_dotenv(Path(__file__).resolve().parents[3] / '.env')
+
+def _load_root_env() -> None:
+    # Local dev keeps a single .env at the monorepo root (shared with the
+    # Node apps), several directories up from this file. In Railway's Docker
+    # image only packages/ai-engine/app is copied in, so that root doesn't
+    # exist at all — real env vars are injected directly there instead, so
+    # walking up and finding nothing is expected and fine.
+    for directory in Path(__file__).resolve().parents:
+        candidate = directory / '.env'
+        if candidate.exists():
+            load_dotenv(candidate)
+            return
+
+
+_load_root_env()
 
 OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 

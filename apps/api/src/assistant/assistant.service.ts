@@ -6,7 +6,10 @@ import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { DEFAULT_KNOWLEDGE_BASE, DEFAULT_SYSTEM_PROMPT } from './assistant.defaults';
 
 const CONFIG_ID = 'singleton';
-const REQUEST_TIMEOUT_MS = 30_000;
+// Free-tier reasoning models (e.g. deepseek-r1:free) can genuinely take
+// 30s+ to respond even when everything is warm — longer than the old 30s
+// budget, which caused false-negative timeouts on real, in-flight replies.
+const REQUEST_TIMEOUT_MS = 45_000;
 const HISTORY_LIMIT = 6;
 
 export interface ChatResult {

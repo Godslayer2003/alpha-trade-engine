@@ -1,3 +1,4 @@
+import logging
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query
@@ -8,6 +9,22 @@ from .data_sources import binance, yahoo
 from .data_sources.common import Candle, MarketDataError, SUPPORTED_TIMEFRAMES, Timeframe
 
 app = FastAPI(title="Alpha-Trade AI Analysis Core", version="0.2.0")
+
+logger = logging.getLogger('uvicorn.error')
+
+
+@app.on_event("startup")
+async def warm_up_embedding_model() -> None:
+    # sentence-transformers downloads + loads the model (~90MB) the first
+    # time it's used, which can take well over the frontend's request
+    # timeout on a cold container. Paying that cost once at startup — before
+    # Railway routes any real traffic here — keeps the first real chat
+    # message from timing out.
+    try:
+        rag.build_index('warm up', chunk_size_tokens=8)
+        logger.info('Assistant embedding model warmed up.')
+    except Exception as err:  # pragma: no cover - best-effort warm-up
+        logger.warning(f'Embedding model warm-up failed (will lazy-load on first request): {err}')
 
 AssetClass = Literal['EQUITY', 'CRYPTO', 'COMMODITY']
 

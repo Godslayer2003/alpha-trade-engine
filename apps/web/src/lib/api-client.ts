@@ -470,10 +470,10 @@ export interface AssistantChatResult {
 // picker spec — full catalog is linked out to openrouter.ai/models instead
 // of mirrored here.
 export const ASSISTANT_MODELS = [
-  { id: 'deepseek/deepseek-r1:free', label: 'DeepSeek R1 (free)' },
-  { id: 'meta-llama/llama-3.1-8b-instruct:free', label: 'Llama 3.1 8B (free)' },
+  { id: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B (free)' },
+  { id: 'nvidia/nemotron-nano-9b-v2:free', label: 'Nemotron Nano 9B (free)' },
   { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini (paid)' },
-  { id: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (paid)' },
+  { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5 (paid)' },
 ] as const;
 
 export async function chatWithAssistant(

@@ -25,8 +25,10 @@ _load_root_env()
 OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 # OpenRouter, not a provider SDK directly, so swapping models/providers later
-# is a one-line change here rather than a rewrite.
-DEFAULT_MODEL = 'deepseek/deepseek-r1:free'
+# is a one-line change here rather than a rewrite. OpenRouter rotates which
+# models are free fairly often — verify against GET /api/v1/models before
+# assuming a `:free` slug from docs/examples is still live.
+DEFAULT_MODEL = 'openai/gpt-oss-20b:free'
 
 REQUEST_TIMEOUT_SECONDS = 30.0
 

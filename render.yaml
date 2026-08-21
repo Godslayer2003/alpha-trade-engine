@@ -1,0 +1,38 @@
+# Render Blueprint — replaces Railway for the API server and AI engine.
+# Deploy via Render's dashboard: New > Blueprint, point it at this repo.
+# No secrets live in this file (sync: false means "ask the user to type it
+# in during setup, store it only in Render, never in git").
+services:
+  - name: alpha-trade-engine-api
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      # Set manually after the ai-engine service below gets its real URL —
+      # see the AI-engine setup instructions.
+      - key: AI_ENGINE_URL
+        sync: false
+
+  - name: alpha-trade-engine-ai
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./packages/ai-engine/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false

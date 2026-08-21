@@ -4,9 +4,15 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
-EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2'
+# Same model as before (all-MiniLM-L6-v2), but run through fastembed's ONNX
+# Runtime instead of sentence-transformers/PyTorch. Plain `import torch`
+# alone uses 300-500MB+ of RAM before doing any work, which doesn't fit in a
+# 512MB free-hosting container (confirmed OOM-killed on Render's free tier).
+# fastembed uses the same model weights with a fraction of the footprint.
+EMBEDDING_MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
+EMBEDDING_DIM = 384  # all-MiniLM-L6-v2's fixed output size
 DEFAULT_CHUNK_SIZE_TOKENS = 128
 TOP_K = 3
 
@@ -38,10 +44,20 @@ class Index:
 
 
 @lru_cache(maxsize=1)
-def _get_model() -> SentenceTransformer:
+def _get_model() -> TextEmbedding:
     # Loaded lazily on first use — the model download/load takes a few
     # seconds, which is why callers show a loading state on first request.
-    return SentenceTransformer(EMBEDDING_MODEL_NAME)
+    return TextEmbedding(model_name=EMBEDDING_MODEL_NAME)
+
+
+def _embed(model: TextEmbedding, texts: list[str]) -> np.ndarray:
+    vectors = np.array(list(model.embed(texts)), dtype=np.float32)
+    # L2-normalize explicitly so the dot-product similarity in retrieve()
+    # below is exactly cosine similarity, regardless of whether fastembed's
+    # output is already normalized.
+    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+    norms[norms == 0] = 1
+    return vectors / norms
 
 
 def _approx_token_count(text: str) -> int:
@@ -94,11 +110,11 @@ def build_index(knowledge_base: str, chunk_size_tokens: int = DEFAULT_CHUNK_SIZE
     chunks = chunk_text(knowledge_base, chunk_size_tokens)
     model = _get_model()
     if chunks:
-        embeddings = model.encode([c.text for c in chunks], normalize_embeddings=True)
+        embeddings = _embed(model, [c.text for c in chunks])
     else:
-        embeddings = np.zeros((0, model.get_sentence_embedding_dimension()))
+        embeddings = np.zeros((0, EMBEDDING_DIM), dtype=np.float32)
 
-    index = Index(chunks=chunks, embeddings=np.asarray(embeddings))
+    index = Index(chunks=chunks, embeddings=embeddings)
 
     if len(_index_cache) >= _MAX_CACHED_INDEXES:
         _index_cache.pop(next(iter(_index_cache)))
@@ -120,7 +136,7 @@ def retrieve(
         return []
 
     model = _get_model()
-    query_embedding = model.encode([query], normalize_embeddings=True)[0]
+    query_embedding = _embed(model, [query])[0]
 
     similarities = index.embeddings @ query_embedding
     top_indices = np.argsort(-similarities)[:top_k]

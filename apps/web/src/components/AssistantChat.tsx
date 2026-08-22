@@ -44,6 +44,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   // signed-in user. Anonymous chat is unaffected (paid stays null, and the
   // gate below only ever checks it when `token` is present).
   const [paid, setPaid] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -64,7 +65,10 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
       return;
     }
     fetchPaymentStatus(token)
-      .then((res) => setPaid(res.paid))
+      .then((res) => {
+        setPaid(res.paid);
+        setIsAdmin(res.admin);
+      })
       .catch(() => setPaid(false));
   }, [token]);
 
@@ -185,7 +189,9 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         </div>
         {showSettings && (
           <div className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 p-2">
-            <p className="text-[11px] text-slate-700 dark:text-slate-300">Payment status: Paid ✓ (no refunds — see disclaimer)</p>
+            <p className="text-[11px] text-slate-700 dark:text-slate-300">
+              {isAdmin ? 'Admin access — no payment required' : 'Payment status: Paid ✓ (no refunds — see disclaimer)'}
+            </p>
           </div>
         )}
         <div className="flex items-center gap-1.5">

@@ -626,7 +626,7 @@ export async function runWorkflow(token: string, id: string): Promise<{ sent: st
 
 // --- Payments (Stripe paywall on the AI Guide chatbot) ---
 
-export async function fetchPaymentStatus(token: string): Promise<{ paid: boolean }> {
+export async function fetchPaymentStatus(token: string): Promise<{ paid: boolean; admin: boolean }> {
   const res = await fetch(`${API_URL}/api/v1/payments/status`, { headers: authHeaders(token) });
   if (!res.ok) return throwOnError(res, 'Could not load payment status');
   return res.json();

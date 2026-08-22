@@ -24,14 +24,14 @@ export class PaymentsService {
     return this.stripe;
   }
 
-  async getStatus(userId: string): Promise<{ paid: boolean }> {
+  async getStatus(userId: string): Promise<{ paid: boolean; admin: boolean }> {
     // No Stripe configured (e.g. local dev without a key) — paywall
     // disabled entirely rather than locking chat out with no way to pay,
     // matching how TELEGRAM_BOT_TOKEN/RESEND_API_KEY degrade when unset.
-    if (!this.stripe) return { paid: true };
+    if (!this.stripe) return { paid: true, admin: false };
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    if (this.adminEmails.includes(user.email.toLowerCase())) return { paid: true };
-    return { paid: user.chatAccessPaid };
+    if (this.adminEmails.includes(user.email.toLowerCase())) return { paid: true, admin: true };
+    return { paid: user.chatAccessPaid, admin: false };
   }
 
   async createCheckoutSession(userId: string, email: string, returnUrl: string): Promise<{ url: string }> {

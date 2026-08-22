@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from dataclasses import dataclass
@@ -98,3 +99,29 @@ async def ask_with_context(
         output_tokens=usage.get('completion_tokens', 0),
         response_time_ms=elapsed_ms,
     )
+
+
+async def classify_intent(message: str, workflows: list[dict], model: str = DEFAULT_MODEL) -> str | None:
+    """Returns a workflow id if `message` is clearly asking to run one of the
+    given workflows, else None (including on any classification error — this
+    is a nice-to-have layered on top of normal chat, so it fails open)."""
+    if not workflows:
+        return None
+
+    catalog = '\n'.join(f"- {w['id']}: {w['name']} — {w['description']}" for w in workflows)
+    prompt = (
+        'You classify whether a user message is asking to run one of these workflows. '
+        f'Available workflows:\n{catalog}\n\n'
+        'Reply with ONLY a JSON object: {"workflow_id": "<id>"} if the message clearly asks to run '
+        'one of these, or {"workflow_id": null} if it is a normal question/conversation. No other text.'
+    )
+    try:
+        content, _usage = await _call_openrouter(
+            [{'role': 'system', 'content': prompt}, {'role': 'user', 'content': message}], model,
+        )
+        parsed = json.loads(content.strip().strip('`'))
+        workflow_id = parsed.get('workflow_id')
+        valid_ids = {w['id'] for w in workflows}
+        return workflow_id if workflow_id in valid_ids else None
+    except (AgentError, json.JSONDecodeError, AttributeError, TypeError):
+        return None

@@ -30,6 +30,22 @@ export async function fetchCandles(
   return res.json();
 }
 
+export interface Quote {
+  symbol: string;
+  price: number;
+  asOf: string;
+  dataSource: string;
+}
+
+export async function fetchQuote(symbol: string, assetClass: AssetClass): Promise<Quote> {
+  // NestJS's MarketController already proxies MarketService.getQuote(),
+  // which converts the ai-engine's snake_case response to camelCase.
+  const params = new URLSearchParams({ symbol, assetClass });
+  const res = await fetch(`${API_URL}/api/v1/market/quote?${params.toString()}`);
+  if (!res.ok) return throwOnError(res, 'Could not load a quote');
+  return res.json();
+}
+
 export async function fetchTradeSignal(
   symbol: string,
   assetClass: AssetClass,
@@ -421,6 +437,14 @@ export async function fetchTelegramStatus(token: string): Promise<TelegramStatus
   return res.json();
 }
 
+export async function sendTelegramTestMessage(token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/telegram/test-message`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) await throwOnError(res, 'Could not send a Telegram test message');
+}
+
 // --- AI insight reports ---
 
 export interface AiReport {
@@ -480,10 +504,16 @@ export async function chatWithAssistant(
   messages: ChatMessage[],
   context?: Record<string, unknown>,
   model?: string,
+  token?: string,
 ): Promise<AssistantChatResult> {
+  // Auth is optional here — anonymous dashboard chat must keep working —
+  // but sending the token when present lets the backend resolve a userId,
+  // which the agentic chatbot needs to trigger workflows.
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/v1/assistant/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ messages, context, model }),
   });
   if (!res.ok) return throwOnError(res, 'Assistant request failed');
@@ -568,5 +598,28 @@ export interface AssistantFeedbackList {
 export async function fetchAssistantFeedback(token: string): Promise<AssistantFeedbackList> {
   const res = await fetch(`${API_URL}/api/v1/assistant/feedback`, { headers: authHeaders(token) });
   if (!res.ok) return throwOnError(res, 'Could not load results');
+  return res.json();
+}
+
+// --- Workflows (chained automations built from the components above) ---
+
+export interface WorkflowDefinition {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export async function fetchWorkflows(token: string): Promise<WorkflowDefinition[]> {
+  const res = await fetch(`${API_URL}/api/v1/workflows`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load workflows');
+  return res.json();
+}
+
+export async function runWorkflow(token: string, id: string): Promise<{ sent: string[]; errors: string[] }> {
+  const res = await fetch(`${API_URL}/api/v1/workflows/${id}/run`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not run workflow');
   return res.json();
 }

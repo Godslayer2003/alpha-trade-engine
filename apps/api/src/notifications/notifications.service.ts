@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { PortfolioService } from '../portfolio/portfolio.service';
@@ -39,7 +39,15 @@ export class NotificationsService {
         if (!this.isDue(profile.dailyReportTime, clock.minutesSinceMidnight)) continue;
         if (this.alreadySentToday(profile.lastDailyReportSentAt, profile.dailyReportTimezone, clock.dateKey)) continue;
 
-        await this.sendReport(profile.userId, profile.user.email, profile.notificationEmail, profile.dailyReportChannels);
+        const { errors } = await this.dispatchToChannels(
+          profile.userId,
+          profile.user.email,
+          profile.notificationEmail,
+          profile.dailyReportChannels,
+        );
+        if (errors.length > 0) {
+          this.logger.warn(`Daily report partially failed for user ${profile.userId}: ${errors.join('; ')}`);
+        }
 
         await this.prisma.userProfile.update({
           where: { id: profile.id },
@@ -51,26 +59,40 @@ export class NotificationsService {
     }
   }
 
-  private async sendReport(
+  /** Runs the Daily Portfolio Briefing workflow on demand for one user (used by the Workflows module + agentic chatbot). */
+  async runBriefingForUser(userId: string): Promise<{ sent: string[]; errors: string[] }> {
+    const profile = await this.prisma.userProfile.findUnique({ where: { userId }, include: { user: true } });
+    if (!profile) throw new NotFoundException('No profile for this user.');
+    return this.dispatchToChannels(profile.userId, profile.user.email, profile.notificationEmail, profile.dailyReportChannels);
+  }
+
+  /** Sends the daily briefing via whichever channels are given, isolating failures per channel — used by both the cron loop and on-demand callers (settings "Send test now", the Workflows module, the agentic chatbot). */
+  async dispatchToChannels(
     userId: string,
     accountEmail: string,
     notificationEmail: string | null,
     channels: string[],
-  ) {
+  ): Promise<{ sent: string[]; errors: string[] }> {
+    const sent: string[] = [];
+    const errors: string[] = [];
+
     // Each channel is isolated so one failing channel (e.g. no
     // RESEND_API_KEY) can't stop a working channel from sending, and can't
     // stop lastDailyReportSentAt from being recorded in handleDailyReports
-    // below — which would otherwise leave the user permanently "due" and
+    // above — which would otherwise leave the user permanently "due" and
     // re-triggered on every 5-minute cron tick.
     if (channels.includes('TELEGRAM')) {
       try {
         const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
-        if (link?.chatId) {
+        if (!link?.chatId) {
+          errors.push('Telegram: not linked yet — use "Connect Telegram" first.');
+        } else {
           const text = await this.buildReportText(userId);
           await this.telegramService.sendMessage(link.chatId, text);
+          sent.push('TELEGRAM');
         }
       } catch (err) {
-        this.logger.warn(`Daily report Telegram send failed for user ${userId}: ${(err as Error).message}`);
+        errors.push(`Telegram: ${(err as Error).message}`);
       }
     }
 
@@ -78,10 +100,13 @@ export class NotificationsService {
       try {
         const html = await this.buildReportHtml(userId);
         await this.emailService.sendDailyReport(notificationEmail ?? accountEmail, 'Your Daily Alpha-Trade Report', html);
+        sent.push('EMAIL');
       } catch (err) {
-        this.logger.warn(`Daily report Email send failed for user ${userId}: ${(err as Error).message}`);
+        errors.push(`Email: ${(err as Error).message}`);
       }
     }
+
+    return { sent, errors };
   }
 
   async buildReportText(userId: string): Promise<string> {

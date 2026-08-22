@@ -15,11 +15,11 @@ logger = logging.getLogger('uvicorn.error')
 
 @app.on_event("startup")
 async def warm_up_embedding_model() -> None:
-    # sentence-transformers downloads + loads the model (~90MB) the first
-    # time it's used, which can take well over the frontend's request
-    # timeout on a cold container. Paying that cost once at startup — before
-    # Railway routes any real traffic here — keeps the first real chat
-    # message from timing out.
+    # fastembed downloads + loads the model (~90MB) the first time it's
+    # used, which can take well over the frontend's request timeout on a
+    # cold container. Paying that cost once at startup — before the host
+    # routes any real traffic here — keeps the first real chat message from
+    # timing out.
     try:
         rag.build_index('warm up', chunk_size_tokens=8)
         logger.info('Assistant embedding model warmed up.')
@@ -224,3 +224,33 @@ async def assistant_chat(payload: AssistantChatRequest):
 async def assistant_chunks(payload: AssistantChunksRequest):
     chunks = rag.chunk_text(payload.knowledge_base, payload.chunk_size)
     return [ChunkResponse(index=c.index, text=c.text, tokens=c.tokens) for c in chunks]
+
+
+# --- Agentic chatbot: workflow intent classification ---
+# Kept separate from /v1/assistant/chat so the RAG chat path stays
+# unchanged/low-risk and this step is independently testable.
+
+class WorkflowSummary(BaseModel):
+    id: str
+    name: str
+    description: str
+
+
+class IntentRequest(BaseModel):
+    message: str
+    workflows: list[WorkflowSummary]
+    model: str = agents.DEFAULT_MODEL
+
+
+class IntentResponse(BaseModel):
+    workflow_id: str | None
+
+
+@app.post("/v1/assistant/intent", response_model=IntentResponse)
+async def assistant_intent(payload: IntentRequest):
+    workflow_id = await agents.classify_intent(
+        payload.message,
+        [w.model_dump() for w in payload.workflows],
+        payload.model,
+    )
+    return IntentResponse(workflow_id=workflow_id)

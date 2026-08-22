@@ -9,5 +9,6 @@ import { NotificationsController } from './notifications.controller';
   imports: [PortfolioModule, TelegramModule, EmailModule],
   controllers: [NotificationsController],
   providers: [NotificationsService],
+  exports: [NotificationsService],
 })
 export class NotificationsModule {}

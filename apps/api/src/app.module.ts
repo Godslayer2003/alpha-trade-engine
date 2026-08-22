@@ -18,6 +18,7 @@ import { ReportsModule } from './reports/reports.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { EmailModule } from './email/email.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     TelegramModule,
     EmailModule,
     NotificationsModule,
+    WorkflowsModule,
   ],
   providers: [
     {

@@ -18,4 +18,10 @@ export class TelegramController {
   async getStatus(@CurrentUser() user: AuthenticatedUser) {
     return this.telegramService.getLinkStatus(user.userId);
   }
+
+  @Post('test-message')
+  async sendTestMessage(@CurrentUser() user: AuthenticatedUser) {
+    await this.telegramService.sendTestMessage(user.userId);
+    return { ok: true };
+  }
 }

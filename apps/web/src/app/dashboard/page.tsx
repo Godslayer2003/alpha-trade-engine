@@ -34,6 +34,12 @@ export default function DashboardPage() {
           <Link href="/onboarding" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
             Risk questionnaire
           </Link>
+          <Link href="/components" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
+            Components
+          </Link>
+          <Link href="/workflows" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
+            Workflows
+          </Link>
           <Link href="/settings" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
             ⚙ Settings
           </Link>

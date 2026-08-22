@@ -62,7 +62,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         }
       }
 
-      const result = await chatWithAssistant(nextMessages, context, model);
+      const result = await chatWithAssistant(nextMessages, context, model, token ?? undefined);
       setMessages([
         ...nextMessages,
         {

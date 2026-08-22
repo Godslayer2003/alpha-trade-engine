@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Context, Telegraf } from 'telegraf';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -103,6 +103,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     await this.bot.telegram.sendMessage(chatId, text);
   }
 
+  /** Sends a minimal ping so a user can verify their Telegram link actually works — the "Telegram Test Message" component. */
+  async sendTestMessage(userId: string): Promise<void> {
+    const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
+    if (!link?.chatId) {
+      throw new BadRequestException('Telegram is not linked yet — use "Connect Telegram" first.');
+    }
+    await this.sendMessage(link.chatId, 'Test message from Alpha-Trade Engine — your Telegram connection is working.');
+  }
+
   async getLinkStatus(userId: string): Promise<{ linked: boolean; linkedAt: string | null }> {
     const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
     return { linked: !!link?.chatId, linkedAt: link?.linkedAt?.toISOString() ?? null };
@@ -194,7 +203,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         return;
       }
       try {
-        const result = await this.assistantService.chat([{ role: 'user', content: question }]);
+        // Not hard-required like /portfolio — an unlinked chat still gets a
+        // normal AI Guide reply, it just can't trigger workflows (those need
+        // a resolved userId).
+        const link = await this.prisma.telegramLink.findUnique({ where: { chatId: String(ctx.chat!.id) } });
+        const result = await this.assistantService.chat([{ role: 'user', content: question }], undefined, undefined, link?.userId);
         await ctx.reply(result.reply);
       } catch (err) {
         await ctx.reply(`Could not reach the AI guide: ${(err as Error).message}`);

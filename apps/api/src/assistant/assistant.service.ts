@@ -82,7 +82,7 @@ export class AssistantService {
     // a specific portfolio/channels), so anonymous dashboard chat is
     // unaffected. Fails open to normal RAG chat on any classification error.
     if (userId) {
-      const workflowResult = await this.tryRunWorkflow(last.content, userId);
+      const workflowResult = await this.tryRunWorkflow(last.content, userId, model);
       if (workflowResult) return workflowResult;
     }
 
@@ -112,7 +112,7 @@ export class AssistantService {
   }
 
   /** Classifies whether `message` is asking to run a known workflow and, if so, runs it — returns null to fall through to normal RAG chat. */
-  private async tryRunWorkflow(message: string, userId: string): Promise<ChatResult | null> {
+  private async tryRunWorkflow(message: string, userId: string, model?: string): Promise<ChatResult | null> {
     const workflowsService = this.moduleRef.get<WorkflowsService>(WORKFLOWS_SERVICE, { strict: false });
     const workflows = workflowsService.listWorkflows();
 
@@ -121,6 +121,7 @@ export class AssistantService {
       intent = await this.fetchJson<{ workflow_id: string | null }>('/v1/assistant/intent', {
         message,
         workflows: workflows.map((w) => ({ id: w.id, name: w.name, description: w.description })),
+        model: model || undefined,
       });
     } catch (err) {
       // Classification is a nice-to-have on top of normal chat — a

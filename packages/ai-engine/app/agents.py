@@ -33,6 +33,12 @@ DEFAULT_MODEL = 'google/gemma-4-31b-it:free'
 
 REQUEST_TIMEOUT_SECONDS = 30.0
 
+# Without an explicit cap, OpenRouter defaults to the model's max output
+# (e.g. 65536 for Claude Sonnet 5), which a low account balance can't afford
+# even for a short chat reply. A chat assistant reply never needs anywhere
+# near that much.
+MAX_OUTPUT_TOKENS = 1024
+
 
 class AgentError(Exception):
     """Raised when OpenRouter can't be reached or returns an unusable response."""
@@ -56,7 +62,7 @@ async def _call_openrouter(messages: list[dict[str, str]], model: str) -> tuple[
             response = await client.post(
                 OPENROUTER_API_URL,
                 headers={'Authorization': f'Bearer {api_key}'},
-                json={'model': model, 'messages': messages},
+                json={'model': model, 'messages': messages, 'max_tokens': MAX_OUTPUT_TOKENS},
             )
         except httpx.RequestError as err:
             raise AgentError(f'Could not reach OpenRouter: {err}') from err

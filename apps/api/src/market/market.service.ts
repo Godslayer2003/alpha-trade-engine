@@ -22,6 +22,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
 @Injectable()
 export class MarketService {
   private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
+  private readonly aiEngineSecret = process.env.AI_ENGINE_SHARED_SECRET;
 
   async getCandles(dto: GetCandlesDto): Promise<Candle[]> {
     return this.fetchJson<Candle[]>('/v1/market/candles', {
@@ -54,6 +55,7 @@ export class MarketService {
     let res: Response;
     try {
       res = await fetch(`${this.aiEngineUrl}${path}?${new URLSearchParams(params)}`, {
+        headers: this.aiEngineSecret ? { 'x-internal-secret': this.aiEngineSecret } : undefined,
         signal: controller.signal,
       });
     } catch (err) {

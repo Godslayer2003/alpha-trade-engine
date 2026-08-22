@@ -23,6 +23,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
 @Injectable()
 export class AnalysisService {
   private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
+  private readonly aiEngineSecret = process.env.AI_ENGINE_SHARED_SECRET;
 
   async getTradeSignal(dto: GetSignalDto): Promise<TradeSignal> {
     const response = await this.callAiEngine(dto);
@@ -48,7 +49,10 @@ export class AnalysisService {
     try {
       res = await fetch(`${this.aiEngineUrl}/v1/analysis/signal`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.aiEngineSecret ? { 'x-internal-secret': this.aiEngineSecret } : {}),
+        },
         body: JSON.stringify({
           symbol: dto.symbol,
           asset_class: dto.assetClass,

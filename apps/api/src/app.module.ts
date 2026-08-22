@@ -1,6 +1,7 @@
 import { Module, ValidationPipe } from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AnalysisModule } from './analysis/analysis.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { AuthModule } from './auth/auth.module';
@@ -23,6 +24,10 @@ import { WorkflowsModule } from './workflows/workflows.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    // Generous global default — this only exists to stop brute-force/cost
+    // abuse (login, register, the LLM-backed chat endpoint), not to
+    // throttle normal dashboard usage.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
     AnalysisModule,
     BrokerModule,
@@ -47,6 +52,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
       provide: APP_PIPE,
       useValue: new ValidationPipe({ whitelist: true, transform: true }),
     },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

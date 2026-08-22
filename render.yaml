@@ -26,6 +26,17 @@ services:
       # see the AI-engine setup instructions.
       - key: AI_ENGINE_URL
         sync: false
+      # Must match AI_ENGINE_SHARED_SECRET on alpha-trade-engine-ai below —
+      # any random string, generated once and pasted into both services.
+      - key: AI_ENGINE_SHARED_SECRET
+        sync: false
+      # Comma-separated list of emails allowed to edit the AI Guide's
+      # config and view the feedback log (e.g. "you@example.com").
+      - key: ADMIN_EMAILS
+        sync: false
+      # The live web app's origin (e.g. https://alpha-trade-engine-web.vercel.app).
+      - key: WEB_ORIGIN
+        sync: false
 
   - name: alpha-trade-engine-ai
     type: web
@@ -35,4 +46,7 @@ services:
     dockerContext: .
     envVars:
       - key: OPENROUTER_API_KEY
+        sync: false
+      # Must match AI_ENGINE_SHARED_SECRET on alpha-trade-engine-api above.
+      - key: AI_ENGINE_SHARED_SECRET
         sync: false

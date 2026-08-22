@@ -34,6 +34,7 @@ export interface ChatResult {
 export class AssistantService {
   private readonly logger = new Logger(AssistantService.name);
   private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
+  private readonly aiEngineSecret = process.env.AI_ENGINE_SHARED_SECRET;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -175,7 +176,10 @@ export class AssistantService {
     try {
       res = await fetch(`${this.aiEngineUrl}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.aiEngineSecret ? { 'x-internal-secret': this.aiEngineSecret } : {}),
+        },
         body: JSON.stringify(body),
         signal: controller.signal,
       });

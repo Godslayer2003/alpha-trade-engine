@@ -1,7 +1,9 @@
 import logging
+import os
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from . import agents, rag, signal_engine
@@ -11,6 +13,21 @@ from .data_sources.common import Candle, MarketDataError, SUPPORTED_TIMEFRAMES, 
 app = FastAPI(title="Alpha-Trade AI Analysis Core", version="0.2.0")
 
 logger = logging.getLogger('uvicorn.error')
+
+# This service is deployed as its own public Render URL with no auth of its
+# own — without this, anyone who finds that URL could call it directly
+# (bypassing the api's login/guards) and burn the OpenRouter/Gemini budget.
+# Optional (like TELEGRAM_BOT_TOKEN etc.) so local dev without the env var
+# set keeps working unauthenticated.
+_SHARED_SECRET = os.environ.get('AI_ENGINE_SHARED_SECRET')
+
+
+@app.middleware("http")
+async def require_shared_secret(request: Request, call_next):
+    if _SHARED_SECRET and request.url.path != '/health':
+        if request.headers.get('x-internal-secret') != _SHARED_SECRET:
+            return JSONResponse(status_code=401, content={'detail': 'Missing or invalid internal secret.'})
+    return await call_next(request)
 
 
 @app.on_event("startup")

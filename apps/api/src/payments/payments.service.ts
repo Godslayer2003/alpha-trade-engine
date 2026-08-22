@@ -8,6 +8,12 @@ const CHAT_ACCESS_PRICE_USD_CENTS = 500;
 @Injectable()
 export class PaymentsService {
   private readonly stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+  // Same ADMIN_EMAILS list AdminGuard checks — the site operator shouldn't
+  // have to pay for their own app.
+  private readonly adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -24,6 +30,7 @@ export class PaymentsService {
     // matching how TELEGRAM_BOT_TOKEN/RESEND_API_KEY degrade when unset.
     if (!this.stripe) return { paid: true };
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (this.adminEmails.includes(user.email.toLowerCase())) return { paid: true };
     return { paid: user.chatAccessPaid };
   }
 

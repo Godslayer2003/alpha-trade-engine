@@ -24,7 +24,7 @@ _SHARED_SECRET = os.environ.get('AI_ENGINE_SHARED_SECRET')
 
 @app.middleware("http")
 async def require_shared_secret(request: Request, call_next):
-    if _SHARED_SECRET and request.url.path != '/health':
+    if _SHARED_SECRET and request.url.path not in ('/health', '/'):
         if request.headers.get('x-internal-secret') != _SHARED_SECRET:
             return JSONResponse(status_code=401, content={'detail': 'Missing or invalid internal secret.'})
     return await call_next(request)

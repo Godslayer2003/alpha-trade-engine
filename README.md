@@ -51,23 +51,23 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 ```mermaid
 flowchart LR
     subgraph DS ["Data Sources"]
-        YF["Yahoo Finance"]
-        BN["Binance"]
+        YF("Yahoo Finance")
+        BN("Binance")
     end
 
     subgraph AGT ["Agent - Brain"]
-        AG["AI Guide<br/>OpenRouter + RAG"]
-        RG["AI Report Generator<br/>Gemini"]
+        AG("AI Guide<br/>OpenRouter + RAG")
+        RG("AI Report Generator<br/>Gemini")
     end
 
     subgraph WFS ["Workflows"]
-        WF["Workflow Registry<br/>e.g. Daily Portfolio Briefing"]
+        WF("Workflow Registry<br/>e.g. Daily Portfolio Briefing")
     end
 
     subgraph TLS ["Tools - Services"]
-        TG["Telegram"]
-        EM["Email / Resend"]
-        BR["Broker matrix<br/>advisory only"]
+        TG("Telegram")
+        EM("Email / Resend")
+        BR("Broker matrix<br/>advisory only")
     end
 
     YF --> AG
@@ -84,6 +84,25 @@ flowchart LR
     AG -. "chat reply" .-> User(("User"))
     RG --> User
     BR --> User
+
+    classDef dataSrc fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e3a8a;
+    classDef agent fill:#ede9fe,stroke:#8b5cf6,stroke-width:1.5px,color:#4c1d95;
+    classDef workflow fill:#ccfbf1,stroke:#14b8a6,stroke-width:1.5px,color:#134e4a;
+    classDef tool fill:#ffedd5,stroke:#f97316,stroke-width:1.5px,color:#7c2d12;
+    classDef store fill:#f1f5f9,stroke:#64748b,stroke-width:1.5px,color:#1e293b;
+    classDef userNode fill:#fce7f3,stroke:#db2777,stroke-width:1.5px,color:#831843;
+
+    class YF,BN dataSrc;
+    class AG,RG agent;
+    class WF workflow;
+    class TG,EM,BR tool;
+    class Portfolio store;
+    class User userNode;
+
+    style DS fill:#eff6ff,stroke:#93c5fd,stroke-width:1px;
+    style AGT fill:#f5f3ff,stroke:#c4b5fd,stroke-width:1px;
+    style WFS fill:#f0fdfa,stroke:#5eead4,stroke-width:1px;
+    style TLS fill:#fff7ed,stroke:#fdba74,stroke-width:1px;
 ```
 
 The AI Guide is reachable from the web chat widget and from the Telegram bot's `/ask` command —

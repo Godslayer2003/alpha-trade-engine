@@ -650,23 +650,8 @@ export async function verifyCheckoutSession(token: string, sessionId: string): P
   return res.json();
 }
 
-export async function refundMyPayment(token: string): Promise<{ paid: boolean }> {
-  const res = await fetch(`${API_URL}/api/v1/payments/refund`, { method: 'POST', headers: authHeaders(token) });
-  if (!res.ok) return throwOnError(res, 'Could not refund payment');
-  return res.json();
-}
-
 export async function fetchPaidUsers(token: string): Promise<{ id: string; email: string }[]> {
   const res = await fetch(`${API_URL}/api/v1/payments/paid-users`, { headers: authHeaders(token) });
   if (!res.ok) return throwOnError(res, 'Could not load paid users');
-  return res.json();
-}
-
-export async function refundUserPayment(token: string, userId: string): Promise<{ paid: boolean }> {
-  const res = await fetch(`${API_URL}/api/v1/payments/refund/${userId}`, {
-    method: 'POST',
-    headers: authHeaders(token),
-  });
-  if (!res.ok) return throwOnError(res, 'Could not refund user');
   return res.json();
 }

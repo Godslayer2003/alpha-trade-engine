@@ -73,7 +73,16 @@ export default function DisclaimerPage() {
           </section>
 
           <section>
-            <h2 className="font-semibold text-slate-900 dark:text-slate-100 mb-1.5">6. Acceptance</h2>
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100 mb-1.5">6. AI Guide chatbot access is non-refundable</h2>
+            <p>
+              Unlocking the AI Guide chat is a one-time $5 payment. All sales are final — payments for AI Guide
+              chatbot access are non-refundable, for any reason, once made. Please make sure you want access before
+              paying.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100 mb-1.5">7. Acceptance</h2>
             <p>
               By creating an account, you confirm that you have read, understood, and agree to this disclaimer.
               If you do not agree, do not create an account or use the platform.

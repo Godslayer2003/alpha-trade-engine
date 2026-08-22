@@ -8,7 +8,6 @@ import {
   createCheckoutSession,
   fetchPaymentStatus,
   fetchPortfolio,
-  refundMyPayment,
   submitAssistantFeedback,
   verifyCheckoutSession,
   ASSISTANT_MODELS,
@@ -47,8 +46,6 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   const [paid, setPaid] = useState<boolean | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [refunding, setRefunding] = useState(false);
-  const [refundMessage, setRefundMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -83,21 +80,6 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
     }
   }
 
-  async function refund() {
-    if (!token || refunding) return;
-    setRefunding(true);
-    setRefundMessage(null);
-    try {
-      await refundMyPayment(token);
-      setPaid(false);
-      setShowSettings(false);
-      setRefundMessage('Refunded — access is locked again.');
-    } catch (err) {
-      setRefundMessage((err as Error).message);
-    } finally {
-      setRefunding(false);
-    }
-  }
 
   async function send() {
     const text = draft.trim();
@@ -202,16 +184,8 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
           </div>
         </div>
         {showSettings && (
-          <div className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 p-2 space-y-1.5">
-            <p className="text-[11px] text-slate-700 dark:text-slate-300">Payment status: Paid ✓</p>
-            <button
-              onClick={refund}
-              disabled={refunding}
-              className="text-[11px] px-2 py-1 rounded-md bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white"
-            >
-              {refunding ? 'Refunding…' : 'Refund my payment'}
-            </button>
-            {refundMessage && <p className="text-[10px] text-slate-600 dark:text-slate-400">{refundMessage}</p>}
+          <div className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 p-2">
+            <p className="text-[11px] text-slate-700 dark:text-slate-300">Payment status: Paid ✓ (no refunds — see disclaimer)</p>
           </div>
         )}
         <div className="flex items-center gap-1.5">
@@ -249,6 +223,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
           >
             {unlocking ? 'Redirecting…' : 'Unlock AI Guide — $5'}
           </button>
+          <p className="text-[10px] text-slate-500">Non-refundable — see the disclaimer page.</p>
           {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
         </div>
       ) : (

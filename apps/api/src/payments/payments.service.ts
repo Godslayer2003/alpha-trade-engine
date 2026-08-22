@@ -71,28 +71,6 @@ export class PaymentsService {
     return { paid: false };
   }
 
-  async refundSelf(userId: string): Promise<{ paid: boolean }> {
-    return this.refund(userId);
-  }
-
-  async refundUser(userId: string): Promise<{ paid: boolean }> {
-    return this.refund(userId);
-  }
-
-  private async refund(userId: string): Promise<{ paid: boolean }> {
-    const stripe = this.requireStripe();
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    if (!user.stripePaymentIntentId) {
-      throw new BadRequestException('No payment on file to refund.');
-    }
-    await stripe.refunds.create({ payment_intent: user.stripePaymentIntentId });
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { chatAccessPaid: false, stripePaymentIntentId: null },
-    });
-    return { paid: false };
-  }
-
   async listPaidUsers(): Promise<{ id: string; email: string }[]> {
     return this.prisma.user.findMany({
       where: { chatAccessPaid: true },

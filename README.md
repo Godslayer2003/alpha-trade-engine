@@ -50,24 +50,24 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 
 ```mermaid
 flowchart LR
-    subgraph Data Sources
-        YF[Yahoo Finance]
-        BN[Binance]
+    subgraph DS ["Data Sources"]
+        YF["Yahoo Finance"]
+        BN["Binance"]
     end
 
-    subgraph Agent [Agent — Brain]
-        AG[AI Guide\nOpenRouter + RAG]
-        RG[AI Report Generator\nGemini]
+    subgraph AGT ["Agent - Brain"]
+        AG["AI Guide<br/>OpenRouter + RAG"]
+        RG["AI Report Generator<br/>Gemini"]
     end
 
-    subgraph Workflows
-        WF[Workflow Registry\ne.g. Daily Portfolio Briefing]
+    subgraph WFS ["Workflows"]
+        WF["Workflow Registry<br/>e.g. Daily Portfolio Briefing"]
     end
 
-    subgraph Tools [Tools — Services]
-        TG[Telegram]
-        EM[Email / Resend]
-        BR[Broker matrix\nadvisory only]
+    subgraph TLS ["Tools - Services"]
+        TG["Telegram"]
+        EM["Email / Resend"]
+        BR["Broker matrix<br/>advisory only"]
     end
 
     YF --> AG
@@ -75,13 +75,13 @@ flowchart LR
     YF --> RG
     BN --> RG
 
-    Portfolio[(Portfolio / Prisma)] --> WF
-    AG -- "classifies intent,\ntriggers" --> WF
+    Portfolio[("Portfolio / Prisma")] --> WF
+    AG -- "classifies intent,<br/>triggers" --> WF
     WF --> TG
     WF --> EM
 
     AG --> TG
-    AG -.->|"chat reply"| User(( User ))
+    AG -. "chat reply" .-> User(("User"))
     RG --> User
     BR --> User
 ```

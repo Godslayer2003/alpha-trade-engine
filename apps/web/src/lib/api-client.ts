@@ -494,8 +494,8 @@ export interface AssistantChatResult {
 // picker spec — full catalog is linked out to openrouter.ai/models instead
 // of mirrored here.
 export const ASSISTANT_MODELS = [
-  { id: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B (free)' },
-  { id: 'nvidia/nemotron-nano-9b-v2:free', label: 'Nemotron Nano 9B (free)' },
+  { id: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free)' },
+  { id: 'z-ai/glm-5.2:free', label: 'GLM 5.2 (free)' },
   { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini (paid)' },
   { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5 (paid)' },
 ] as const;

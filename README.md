@@ -46,6 +46,7 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 | `GEMINI_API_KEY` | AI Insight Reports / Market News Explainer / Company Reports | [Google AI Studio](https://aistudio.google.com/apikey) — **not** used by the AI Guide chat |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot (bot stays disabled if unset) | See "Components" below |
 | `RESEND_API_KEY` | Daily report emails (feature disabled if unset) | [resend.com](https://resend.com) dashboard |
+| `STRIPE_SECRET_KEY` | AI Guide chatbot $5 paywall (chat stays unlocked for everyone if unset) | [dashboard.stripe.com/test/apikeys](https://dashboard.stripe.com/test/apikeys) (use a `sk_test_...` key) |
 | `NEXT_PUBLIC_API_URL` | Web → API | Defaults to `http://localhost:3001` |
 | `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | "Connect Telegram" deep link | Your bot's `@username` |
 
@@ -143,3 +144,10 @@ See `/components` in the running app for a live status board of everything below
      Message" component at `/components/telegram-test`.
 - **Broker recommendation matrix** — no API key; it's a static, advisory-only suggestion list, not
   a live broker connection.
+- **Stripe (AI Guide chatbot paywall)** — a one-time $5 charge unlocks chat for a signed-in user;
+  chat stays unlocked for everyone if unset.
+  1. Create a free account at [stripe.com](https://stripe.com) (no bank account needed for test mode).
+  2. Make sure **Test mode** is on (top right of the dashboard).
+  3. Go to **Developers → API keys** and copy the **Secret key** (starts with `sk_test_...`).
+  4. Set `STRIPE_SECRET_KEY` to that value.
+  5. Test with card number `4242 4242 4242 4242`, any future expiry, any 3-digit CVC.

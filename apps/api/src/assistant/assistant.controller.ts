@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/current-user.decorator';
+import { PaymentsService } from '../payments/payments.service';
 import { AssistantService } from './assistant.service';
 import { ChatRequestDto } from './dto/chat.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
@@ -11,7 +12,10 @@ import { CreateFeedbackDto } from './dto/create-feedback.dto';
 
 @Controller('api/v1/assistant')
 export class AssistantController {
-  constructor(private readonly assistantService: AssistantService) {}
+  constructor(
+    private readonly assistantService: AssistantService,
+    private readonly paymentsService: PaymentsService,
+  ) {}
 
   // Optional auth: anonymous dashboard chat must keep working, but a
   // signed-in user's resolved userId lets the agentic chatbot trigger
@@ -23,6 +27,14 @@ export class AssistantController {
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @UseGuards(OptionalJwtAuthGuard)
   async chat(@Body() dto: ChatRequestDto, @CurrentUser() user: AuthenticatedUser | null) {
+    // Paywall only applies to signed-in users — anonymous dashboard chat
+    // keeps working unmetered, same as before this task.
+    if (user) {
+      const { paid } = await this.paymentsService.getStatus(user.userId);
+      if (!paid) {
+        throw new ForbiddenException('AI Guide chat access requires a one-time $5 payment.');
+      }
+    }
     return this.assistantService.chat(dto.messages, dto.model, dto.context, user?.userId);
   }
 

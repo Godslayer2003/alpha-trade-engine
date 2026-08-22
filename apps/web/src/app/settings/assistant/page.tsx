@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { fetchAssistantConfig, updateAssistantConfig } from '@/lib/api-client';
+import { fetchAssistantConfig, fetchPaidUsers, refundUserPayment, updateAssistantConfig } from '@/lib/api-client';
 
 const CARD = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl';
 const TEXTAREA =
@@ -22,6 +22,9 @@ export default function AssistantSettingsPage() {
   const [kbSaved, setKbSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [paidUsers, setPaidUsers] = useState<{ id: string; email: string }[]>([]);
+  const [refundingId, setRefundingId] = useState<string | null>(null);
+
   const refresh = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -29,6 +32,7 @@ export default function AssistantSettingsPage() {
       const config = await fetchAssistantConfig(token);
       setSystemPrompt(config.systemPrompt);
       setKnowledgeBase(config.knowledgeBase);
+      setPaidUsers(await fetchPaidUsers(token));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -39,6 +43,19 @@ export default function AssistantSettingsPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  async function refundUser(userId: string) {
+    if (!token) return;
+    setRefundingId(userId);
+    try {
+      await refundUserPayment(token, userId);
+      setPaidUsers((prev) => prev.filter((u) => u.id !== userId));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setRefundingId(null);
+    }
+  }
 
   async function savePrompt() {
     if (!token) return;
@@ -141,6 +158,31 @@ export default function AssistantSettingsPage() {
             </button>
           </section>
         </div>
+
+        <section className={CARD}>
+          <h2 className="text-sm font-semibold mb-1 text-slate-800 dark:text-slate-200">Paid chatbot access</h2>
+          <p className="text-[11px] text-slate-500 mb-3">
+            Users who paid the $5 one-time charge to unlock the AI Guide chat. Refunding revokes their access.
+          </p>
+          {paidUsers.length === 0 ? (
+            <p className="text-xs text-slate-500">No paid users yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {paidUsers.map((u) => (
+                <li key={u.id} className="flex items-center justify-between text-xs">
+                  <span className="text-slate-700 dark:text-slate-300">{u.email}</span>
+                  <button
+                    onClick={() => refundUser(u.id)}
+                    disabled={refundingId === u.id}
+                    className="px-2.5 py-1 rounded-md bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white"
+                  >
+                    {refundingId === u.id ? 'Refunding…' : 'Refund'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </main>
   );

@@ -623,3 +623,50 @@ export async function runWorkflow(token: string, id: string): Promise<{ sent: st
   if (!res.ok) return throwOnError(res, 'Could not run workflow');
   return res.json();
 }
+
+// --- Payments (Stripe paywall on the AI Guide chatbot) ---
+
+export async function fetchPaymentStatus(token: string): Promise<{ paid: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/payments/status`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load payment status');
+  return res.json();
+}
+
+export async function createCheckoutSession(token: string, returnUrl: string): Promise<{ url: string }> {
+  const res = await fetch(`${API_URL}/api/v1/payments/checkout`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ returnUrl }),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not start checkout');
+  return res.json();
+}
+
+export async function verifyCheckoutSession(token: string, sessionId: string): Promise<{ paid: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/payments/verify?session_id=${encodeURIComponent(sessionId)}`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not verify payment');
+  return res.json();
+}
+
+export async function refundMyPayment(token: string): Promise<{ paid: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/payments/refund`, { method: 'POST', headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not refund payment');
+  return res.json();
+}
+
+export async function fetchPaidUsers(token: string): Promise<{ id: string; email: string }[]> {
+  const res = await fetch(`${API_URL}/api/v1/payments/paid-users`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load paid users');
+  return res.json();
+}
+
+export async function refundUserPayment(token: string, userId: string): Promise<{ paid: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/payments/refund/${userId}`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) return throwOnError(res, 'Could not refund user');
+  return res.json();
+}

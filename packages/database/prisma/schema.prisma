@@ -58,6 +58,8 @@ model User {
   savedAnalyses  ChartAnalysis[]
   recommendations Recommendation[]
   telegramLink   TelegramLink?
+  chatAccessPaid       Boolean @default(false)
+  stripePaymentIntentId String?
 }
 
 model UserProfile {

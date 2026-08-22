@@ -20,6 +20,7 @@ import { TelegramModule } from './telegram/telegram.module';
 import { EmailModule } from './email/email.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     EmailModule,
     NotificationsModule,
     WorkflowsModule,
+    PaymentsModule,
   ],
   providers: [
     {

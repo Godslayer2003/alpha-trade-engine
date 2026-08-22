@@ -22,6 +22,9 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
+      # AI Guide chatbot $5 paywall — chat stays unlocked for everyone if unset.
+      - key: STRIPE_SECRET_KEY
+        sync: false
       # Set manually after the ai-engine service below gets its real URL —
       # see the AI-engine setup instructions.
       - key: AI_ENGINE_URL

@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { useAuth } from '@/lib/auth-context';
 import {
   chatWithAssistant,
+  createCheckoutSession,
+  fetchPaymentStatus,
   fetchPortfolio,
+  refundMyPayment,
   submitAssistantFeedback,
+  verifyCheckoutSession,
   ASSISTANT_MODELS,
   type ChatMessage,
   type Citation,
@@ -36,6 +40,64 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   const [error, setError] = useState<string | null>(null);
   const [model, setModel] = useState<string>(ASSISTANT_MODELS[0].id);
   const [openCitation, setOpenCitation] = useState<{ msgIndex: number; citation: Citation } | null>(null);
+
+  // Paywall (course Task 7): a one-time $5 Stripe charge unlocks chat for a
+  // signed-in user. Anonymous chat is unaffected (paid stays null, and the
+  // gate below only ever checks it when `token` is present).
+  const [paid, setPaid] = useState<boolean | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [refunding, setRefunding] = useState(false);
+  const [refundMessage, setRefundMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    const sessionId = new URLSearchParams(window.location.search).get('stripe_session_id');
+    if (sessionId) {
+      // Returning from Stripe Checkout — confirm the payment actually went
+      // through before unlocking, then drop the query param from the URL.
+      verifyCheckoutSession(token, sessionId)
+        .then((res) => setPaid(res.paid))
+        .catch(() => setPaid(false))
+        .finally(() => {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('stripe_session_id');
+          window.history.replaceState({}, '', url.toString());
+        });
+      return;
+    }
+    fetchPaymentStatus(token)
+      .then((res) => setPaid(res.paid))
+      .catch(() => setPaid(false));
+  }, [token]);
+
+  async function unlock() {
+    if (!token || unlocking) return;
+    setUnlocking(true);
+    try {
+      const { url } = await createCheckoutSession(token, window.location.href);
+      window.location.href = url;
+    } catch (err) {
+      setError((err as Error).message);
+      setUnlocking(false);
+    }
+  }
+
+  async function refund() {
+    if (!token || refunding) return;
+    setRefunding(true);
+    setRefundMessage(null);
+    try {
+      await refundMyPayment(token);
+      setPaid(false);
+      setShowSettings(false);
+      setRefundMessage('Refunded — access is locked again.');
+    } catch (err) {
+      setRefundMessage((err as Error).message);
+    } finally {
+      setRefunding(false);
+    }
+  }
 
   async function send() {
     const text = draft.trim();
@@ -124,10 +186,34 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">AI Guide</p>
             <p className="text-[10px] text-slate-500">Explains the app — not financial advice, can&apos;t place trades</p>
           </div>
-          <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm">
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {token && paid && (
+              <button
+                onClick={() => setShowSettings((v) => !v)}
+                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm"
+                aria-label="Chat settings"
+              >
+                ⚙️
+              </button>
+            )}
+            <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm">
+              ✕
+            </button>
+          </div>
         </div>
+        {showSettings && (
+          <div className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 p-2 space-y-1.5">
+            <p className="text-[11px] text-slate-700 dark:text-slate-300">Payment status: Paid ✓</p>
+            <button
+              onClick={refund}
+              disabled={refunding}
+              className="text-[11px] px-2 py-1 rounded-md bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white"
+            >
+              {refunding ? 'Refunding…' : 'Refund my payment'}
+            </button>
+            {refundMessage && <p className="text-[10px] text-slate-600 dark:text-slate-400">{refundMessage}</p>}
+          </div>
+        )}
         <div className="flex items-center gap-1.5">
           <select
             value={model}
@@ -151,6 +237,22 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         </div>
       </div>
 
+      {token && paid === false ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Unlock the AI Guide chat with a one-time $5 payment.
+          </p>
+          <button
+            onClick={unlock}
+            disabled={unlocking}
+            className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white"
+          >
+            {unlocking ? 'Redirecting…' : 'Unlock AI Guide — $5'}
+          </button>
+          {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+        </div>
+      ) : (
+        <>
       <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
         {messages.length === 0 && (
           <p className="text-xs text-slate-500">
@@ -250,6 +352,8 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
           Send
         </button>
       </form>
+        </>
+      )}
     </div>
   );
 }

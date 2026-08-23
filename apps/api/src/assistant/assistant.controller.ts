@@ -2,7 +2,6 @@ import { Body, Controller, ForbiddenException, Get, Patch, Post, Query, UseGuard
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
-import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/current-user.decorator';
 import { PaymentsService } from '../payments/payments.service';
 import { AssistantService } from './assistant.service';
@@ -17,25 +16,19 @@ export class AssistantController {
     private readonly paymentsService: PaymentsService,
   ) {}
 
-  // Optional auth: anonymous dashboard chat must keep working, but a
-  // signed-in user's resolved userId lets the agentic chatbot trigger
-  // workflows (e.g. "run my daily briefing") — see AssistantService.chat().
-  // Tighter than the app-wide default — every call here spends real
-  // OpenRouter/Gemini budget, so it's worth throttling harder than a plain
-  // read endpoint.
+  // Login is required so the $5 paywall below actually means something —
+  // anonymous chat used to be allowed, but that let anyone dodge payment by
+  // just logging out. Tighter throttle than the app-wide default — every
+  // call here spends real OpenRouter/Gemini budget.
   @Post('chat')
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
-  @UseGuards(OptionalJwtAuthGuard)
-  async chat(@Body() dto: ChatRequestDto, @CurrentUser() user: AuthenticatedUser | null) {
-    // Paywall only applies to signed-in users — anonymous dashboard chat
-    // keeps working unmetered, same as before this task.
-    if (user) {
-      const { paid } = await this.paymentsService.getStatus(user.userId);
-      if (!paid) {
-        throw new ForbiddenException('AI Guide chat access requires a one-time $5 payment.');
-      }
+  @UseGuards(JwtAuthGuard)
+  async chat(@Body() dto: ChatRequestDto, @CurrentUser() user: AuthenticatedUser) {
+    const { paid } = await this.paymentsService.getStatus(user.userId);
+    if (!paid) {
+      throw new ForbiddenException('AI Guide chat access requires a one-time $5 payment.');
     }
-    return this.assistantService.chat(dto.messages, dto.model, dto.context, user?.userId);
+    return this.assistantService.chat(dto.messages, dto.model, dto.context, user.userId);
   }
 
   @Post('feedback')

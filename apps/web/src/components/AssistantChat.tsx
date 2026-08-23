@@ -217,7 +217,11 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         </div>
       </div>
 
-      {token && paid === false ? (
+      {!token ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
+          <p className="text-xs text-slate-600 dark:text-slate-400">Log in to use the AI Guide chat.</p>
+        </div>
+      ) : paid === false ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">
             Unlock the AI Guide chat with a one-time $5 payment.

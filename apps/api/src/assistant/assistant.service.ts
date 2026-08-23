@@ -80,8 +80,9 @@ export class AssistantService {
     const history = recent.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
 
     // Agentic routing: only attempted for a resolved user (workflows act on
-    // a specific portfolio/channels), so anonymous dashboard chat is
-    // unaffected. Fails open to normal RAG chat on any classification error.
+    // a specific portfolio/channels) — userId is only ever absent here for
+    // an unlinked Telegram chat, since the web chat endpoint now requires
+    // login. Fails open to normal RAG chat on any classification error.
     if (userId) {
       const workflowResult = await this.tryRunWorkflow(last.content, userId, model);
       if (workflowResult) return workflowResult;

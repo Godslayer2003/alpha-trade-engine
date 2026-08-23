@@ -18,19 +18,11 @@ export function DisclaimerBanner() {
     setDismissed(window.localStorage.getItem(STORAGE_KEY) === 'true');
   }, []);
 
-  // Signing up requires agreeing to the disclaimer via the checkbox on that
-  // form, so a logged-in user has already agreed — dismiss it for them
-  // automatically rather than making them also click through the banner.
-  // This persists in localStorage like a manual dismiss, so it stays gone
-  // after a later logout instead of coming back.
-  useEffect(() => {
-    if (user) {
-      window.localStorage.setItem(STORAGE_KEY, 'true');
-      setDismissed(true);
-    }
-  }, [user]);
-
-  if (dismissed === null || dismissed) return null;
+  if (dismissed === null) return null;
+  // Hidden while logged in (signing up already required agreeing to the
+  // disclaimer via that form's checkbox) — but not persisted, so logging
+  // out brings it back unless it was also dismissed manually.
+  if (dismissed || user) return null;
 
   function confirmDismiss() {
     window.localStorage.setItem(STORAGE_KEY, 'true');

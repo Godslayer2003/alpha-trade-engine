@@ -19,6 +19,25 @@ async function throwOnError(res: Response, label: string): Promise<never> {
   throw new Error(`${label}: ${message}`);
 }
 
+// The free-tier AI engine can be asleep and take up to ~60s to wake on the
+// first request after a while — retry a few times with a friendly "waking
+// up" message instead of surfacing a raw error on the very first attempt.
+const WAKEUP_MAX_ATTEMPTS = 6;
+const WAKEUP_RETRY_DELAY_MS = 10_000;
+
+export async function fetchWithWakeupRetry<T>(fetcher: () => Promise<T>, onRetrying: (attempt: number) => void): Promise<T> {
+  for (let attempt = 1; attempt <= WAKEUP_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fetcher();
+    } catch (err) {
+      if (attempt === WAKEUP_MAX_ATTEMPTS) throw err;
+      onRetrying(attempt);
+      await new Promise((resolve) => setTimeout(resolve, WAKEUP_RETRY_DELAY_MS));
+    }
+  }
+  throw new Error('unreachable');
+}
+
 export async function fetchCandles(
   symbol: string,
   assetClass: AssetClass,

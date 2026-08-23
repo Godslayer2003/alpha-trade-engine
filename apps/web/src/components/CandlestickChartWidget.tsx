@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickData, IChartApi } from 'lightweight-charts';
 import { AssetClass, DealType } from '@alpha-trade/shared-types';
-import { fetchCandles, fetchTradeSignal, type TradeSignal } from '@/lib/api-client';
+import { fetchCandles, fetchTradeSignal, fetchWithWakeupRetry, type TradeSignal } from '@/lib/api-client';
 import { useTheme } from '@/lib/theme-context';
 
 interface CandlestickChartWidgetProps {
@@ -24,10 +24,12 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
   const chartRef = useRef<IChartApi | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
   const [chartLoading, setChartLoading] = useState(true);
+  const [chartWaking, setChartWaking] = useState(false);
 
   const [signal, setSignal] = useState<TradeSignal | null>(null);
   const [loadingSignal, setLoadingSignal] = useState(false);
   const [signalError, setSignalError] = useState<string | null>(null);
+  const [signalWaking, setSignalWaking] = useState(false);
 
   useEffect(() => {
     setSignal(null);
@@ -68,8 +70,14 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
     let cancelled = false;
     setChartLoading(true);
     setChartError(null);
+    setChartWaking(false);
 
-    fetchCandles(symbol, assetClass, timeframe)
+    fetchWithWakeupRetry(
+      () => fetchCandles(symbol, assetClass, timeframe),
+      () => {
+        if (!cancelled) setChartWaking(true);
+      },
+    )
       .then((candles) => {
         if (cancelled) return;
         // Use a full Unix timestamp rather than a date-only string: several
@@ -89,7 +97,10 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
         if (!cancelled) setChartError(err.message);
       })
       .finally(() => {
-        if (!cancelled) setChartLoading(false);
+        if (!cancelled) {
+          setChartLoading(false);
+          setChartWaking(false);
+        }
       });
 
     return () => {
@@ -102,12 +113,19 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
   async function requestSignal() {
     setLoadingSignal(true);
     setSignalError(null);
+    setSignalWaking(false);
     try {
-      setSignal(await fetchTradeSignal(symbol, assetClass, timeframe));
+      setSignal(
+        await fetchWithWakeupRetry(
+          () => fetchTradeSignal(symbol, assetClass, timeframe),
+          () => setSignalWaking(true),
+        ),
+      );
     } catch (err) {
       setSignalError((err as Error).message);
     } finally {
       setLoadingSignal(false);
+      setSignalWaking(false);
     }
   }
 
@@ -126,11 +144,21 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
         </button>
       </div>
 
-      {chartLoading && <p className="text-sm text-slate-500">Loading real market data…</p>}
+      {chartLoading && !chartWaking && <p className="text-sm text-slate-500">Loading real market data…</p>}
+      {chartWaking && (
+        <p className="text-sm text-amber-600 dark:text-amber-400">
+          Waking up the server — this can take up to a minute after a while of no visitors…
+        </p>
+      )}
       {chartError && <p className="text-sm text-rose-600 dark:text-rose-400">{chartError}</p>}
 
       <div ref={containerRef} className="w-full" />
 
+      {signalWaking && (
+        <p className="text-sm text-amber-600 dark:text-amber-400">
+          Waking up the server — this can take up to a minute after a while of no visitors…
+        </p>
+      )}
       {signalError && <p className="text-sm text-rose-600 dark:text-rose-400">{signalError}</p>}
 
       {signal && (

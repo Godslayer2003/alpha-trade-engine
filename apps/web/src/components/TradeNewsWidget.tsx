@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AssetClass } from '@alpha-trade/shared-types';
-import { fetchCandles, fetchReport, type AiReport } from '@/lib/api-client';
+import { fetchCandles, fetchReport, fetchWithWakeupRetry, type AiReport } from '@/lib/api-client';
 
 interface TradeNewsWidgetProps {
   symbol: string;
@@ -47,6 +47,7 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
   const [pctChange, setPctChange] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [waking, setWaking] = useState(false);
 
   // The chart's own symbol search takes back over once it changes — a
   // lookup here is meant as a quick peek, not a permanent override.
@@ -58,13 +59,20 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setWaking(false);
     setReport(null);
     setPctChange(null);
 
-    Promise.all([
-      fetchCandles(activeSymbol, activeAssetClass, '1M'),
-      fetchReport(activeSymbol, activeAssetClass, RECENT_MONTHS),
-    ])
+    fetchWithWakeupRetry(
+      () =>
+        Promise.all([
+          fetchCandles(activeSymbol, activeAssetClass, '1M'),
+          fetchReport(activeSymbol, activeAssetClass, RECENT_MONTHS),
+        ]),
+      () => {
+        if (!cancelled) setWaking(true);
+      },
+    )
       .then(([candles, reportResult]) => {
         if (cancelled) return;
         if (candles.length >= 2) {
@@ -78,7 +86,10 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
         if (!cancelled) setError(`Could not load recent news for ${activeSymbol}.`);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setWaking(false);
+        }
       });
 
     return () => {
@@ -132,7 +143,12 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
         </button>
       </form>
 
-      {loading && <p className="text-sm text-slate-500">Reading the news on {activeSymbol}…</p>}
+      {loading && !waking && <p className="text-sm text-slate-500">Reading the news on {activeSymbol}…</p>}
+      {waking && (
+        <p className="text-sm text-amber-600 dark:text-amber-400">
+          Waking up the server — this can take up to a minute after a while of no visitors…
+        </p>
+      )}
       {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
 
       {report && (

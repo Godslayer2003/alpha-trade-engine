@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 
 const STORAGE_KEY = 'alpha-trade-disclaimer-dismissed';
 
 export function DisclaimerBanner() {
+  const { user } = useAuth();
   // null = not yet hydrated from localStorage; render nothing briefly rather
   // than flash the banner then hide it, or default-hide it for a first-time
   // visitor who's never actually dismissed it.
@@ -15,6 +17,18 @@ export function DisclaimerBanner() {
   useEffect(() => {
     setDismissed(window.localStorage.getItem(STORAGE_KEY) === 'true');
   }, []);
+
+  // Signing up requires agreeing to the disclaimer via the checkbox on that
+  // form, so a logged-in user has already agreed — dismiss it for them
+  // automatically rather than making them also click through the banner.
+  // This persists in localStorage like a manual dismiss, so it stays gone
+  // after a later logout instead of coming back.
+  useEffect(() => {
+    if (user) {
+      window.localStorage.setItem(STORAGE_KEY, 'true');
+      setDismissed(true);
+    }
+  }, [user]);
 
   if (dismissed === null || dismissed) return null;
 

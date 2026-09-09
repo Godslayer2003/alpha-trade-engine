@@ -29,7 +29,15 @@ OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 # is a one-line change here rather than a rewrite. OpenRouter rotates which
 # models are free fairly often — verify against GET /api/v1/models before
 # assuming a `:free` slug from docs/examples is still live.
-DEFAULT_MODEL = 'google/gemma-4-31b-it:free'
+# Keep the default and every free option in the web picker current with
+# OpenRouter's live catalog. Free providers can still briefly rate-limit, so
+# _call_openrouter() can fall back between these two free models without ever
+# silently charging for a paid model.
+DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free'
+FREE_MODEL_FALLBACKS: dict[str, tuple[str, ...]] = {
+    'google/gemma-4-26b-a4b-it:free': ('google/gemma-4-31b-it:free',),
+    'google/gemma-4-31b-it:free': ('google/gemma-4-26b-a4b-it:free',),
+}
 
 REQUEST_TIMEOUT_SECONDS = 30.0
 
@@ -47,41 +55,53 @@ class AgentError(Exception):
 @dataclass
 class ChatResult:
     reply: str
+    model: str
     input_tokens: int
     output_tokens: int
     response_time_ms: int
 
 
-async def _call_openrouter(messages: list[dict[str, str]], model: str) -> tuple[str, dict]:
+async def _call_openrouter(messages: list[dict[str, str]], model: str) -> tuple[str, dict, str]:
     api_key = os.environ.get('OPENROUTER_API_KEY')
     if not api_key:
         raise AgentError('OPENROUTER_API_KEY is not set (check your .env file).')
 
+    candidates = (model, *FREE_MODEL_FALLBACKS.get(model, ()))
+    last_response: httpx.Response | None = None
+
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
-        try:
-            response = await client.post(
-                OPENROUTER_API_URL,
-                headers={'Authorization': f'Bearer {api_key}'},
-                json={'model': model, 'messages': messages, 'max_tokens': MAX_OUTPUT_TOKENS},
-            )
-        except httpx.RequestError as err:
-            raise AgentError(f'Could not reach OpenRouter: {err}') from err
+        for candidate in candidates:
+            try:
+                response = await client.post(
+                    OPENROUTER_API_URL,
+                    headers={'Authorization': f'Bearer {api_key}'},
+                    json={'model': candidate, 'messages': messages, 'max_tokens': MAX_OUTPUT_TOKENS},
+                )
+            except httpx.RequestError as err:
+                raise AgentError(f'Could not reach OpenRouter: {err}') from err
 
-    if response.status_code != 200:
-        raise AgentError(f'OpenRouter returned {response.status_code}: {response.text}')
+            if response.status_code == 200:
+                body = response.json()
+                try:
+                    content = body['choices'][0]['message']['content']
+                except (KeyError, IndexError) as err:
+                    raise AgentError(f'Unexpected OpenRouter response shape: {body}') from err
+                return content, body.get('usage', {}), body.get('model', candidate)
 
-    body = response.json()
-    try:
-        content = body['choices'][0]['message']['content']
-    except (KeyError, IndexError) as err:
-        raise AgentError(f'Unexpected OpenRouter response shape: {body}') from err
+            last_response = response
+            # Only free-model failures may fall through. A paid model must
+            # report its own availability/billing error rather than switching
+            # the user's selected model behind their back.
+            if response.status_code not in (404, 429) or candidate == candidates[-1]:
+                break
 
-    return content, body.get('usage', {})
+    assert last_response is not None
+    raise AgentError(f'OpenRouter returned {last_response.status_code}: {last_response.text}')
 
 
 async def ask(message: str, model: str = DEFAULT_MODEL) -> str:
     """Sends a single user message to an OpenRouter-hosted model and returns its reply text."""
-    content, _usage = await _call_openrouter([{'role': 'user', 'content': message}], model)
+    content, _usage, _actual_model = await _call_openrouter([{'role': 'user', 'content': message}], model)
     return content
 
 
@@ -96,11 +116,12 @@ async def ask_with_context(
     messages = [{'role': 'system', 'content': system_prompt}, *history]
 
     started = time.monotonic()
-    content, usage = await _call_openrouter(messages, model)
+    content, usage, actual_model = await _call_openrouter(messages, model)
     elapsed_ms = int((time.monotonic() - started) * 1000)
 
     return ChatResult(
         reply=content,
+        model=actual_model,
         input_tokens=usage.get('prompt_tokens', 0),
         output_tokens=usage.get('completion_tokens', 0),
         response_time_ms=elapsed_ms,
@@ -122,7 +143,7 @@ async def classify_intent(message: str, workflows: list[dict], model: str = DEFA
         'one of these, or {"workflow_id": null} if it is a normal question/conversation. No other text.'
     )
     try:
-        content, _usage = await _call_openrouter(
+        content, _usage, _actual_model = await _call_openrouter(
             [{'role': 'system', 'content': prompt}, {'role': 'user', 'content': message}], model,
         )
         parsed = json.loads(content.strip().strip('`'))

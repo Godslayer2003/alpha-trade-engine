@@ -1,3 +1,4 @@
+import './env';
 import 'reflect-metadata';
 import { json } from 'express';
 import { NestFactory } from '@nestjs/core';

@@ -92,23 +92,23 @@ export function AssetSearchBar({ symbol, timeframe, onChange, onTimeframeChange 
           e.preventDefault();
           submitDraft();
         }}
-        className="flex items-center gap-2"
+        className="flex flex-col gap-2 sm:flex-row sm:items-center"
       >
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Search any stock, index, crypto, or commodity (e.g. AAPL, ^DJI, BTC, CL=F)"
-          className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="w-full min-w-0 flex-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <button
           type="submit"
-          className="text-sm px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium whitespace-nowrap"
+          className="w-full text-sm px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium whitespace-nowrap sm:w-auto"
         >
           Search
         </button>
       </form>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <label className="flex items-center gap-2 text-xs text-slate-500">
           Market
           <select

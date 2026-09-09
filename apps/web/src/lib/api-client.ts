@@ -4,6 +4,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export type { TradeSignal };
 
+class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
+}
+
 export interface Candle {
   time: string;
   open: number;
@@ -16,7 +23,7 @@ export interface Candle {
 async function throwOnError(res: Response, label: string): Promise<never> {
   const body = await res.json().catch(() => null);
   const message = (body && (body as { message?: string }).message) || `status ${res.status}`;
-  throw new Error(`${label}: ${message}`);
+  throw new ApiRequestError(`${label}: ${message}`, res.status);
 }
 
 // The free-tier AI engine can be asleep and take up to ~60s to wake on the
@@ -30,6 +37,10 @@ export async function fetchWithWakeupRetry<T>(fetcher: () => Promise<T>, onRetry
     try {
       return await fetcher();
     } catch (err) {
+      // A bad symbol or validation error will not improve if the free service
+      // wakes up, so surface it immediately. Network failures and 5xx errors
+      // remain retryable for Render cold starts and transient data-source blips.
+      if (err instanceof ApiRequestError && err.status < 500) throw err;
       if (attempt === WAKEUP_MAX_ATTEMPTS) throw err;
       onRetrying(attempt);
       await new Promise((resolve) => setTimeout(resolve, WAKEUP_RETRY_DELAY_MS));
@@ -44,7 +55,19 @@ export async function fetchCandles(
   timeframe: string,
 ): Promise<Candle[]> {
   const params = new URLSearchParams({ symbol, assetClass, timeframe });
-  const res = await fetch(`${API_URL}/api/v1/market/candles?${params.toString()}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/v1/market/candles?${params.toString()}`, { signal: controller.signal });
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') {
+      throw new Error('Market-data request timed out. Retrying…');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok) return throwOnError(res, 'Could not load market data');
   return res.json();
 }
@@ -513,8 +536,8 @@ export interface AssistantChatResult {
 // picker spec — full catalog is linked out to openrouter.ai/models instead
 // of mirrored here.
 export const ASSISTANT_MODELS = [
+  { id: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (free)' },
   { id: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free)' },
-  { id: 'z-ai/glm-5.2:free', label: 'GLM 5.2 (free)' },
   { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini (paid)' },
   { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5 (paid)' },
 ] as const;
@@ -634,10 +657,15 @@ export async function fetchWorkflows(token: string): Promise<WorkflowDefinition[
   return res.json();
 }
 
-export async function runWorkflow(token: string, id: string): Promise<{ sent: string[]; errors: string[] }> {
+export async function runWorkflow(
+  token: string,
+  id: string,
+  input?: { symbol?: string },
+): Promise<{ sent: string[]; errors: string[] }> {
   const res = await fetch(`${API_URL}/api/v1/workflows/${id}/run`, {
     method: 'POST',
     headers: authHeaders(token),
+    body: input ? JSON.stringify(input) : undefined,
   });
   if (!res.ok) return throwOnError(res, 'Could not run workflow');
   return res.json();

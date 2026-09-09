@@ -21,8 +21,10 @@ import { EmailModule } from './email/email.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { PaymentsModule } from './payments/payments.module';
+import { HealthController } from './health.controller';
 
 @Module({
+  controllers: [HealthController],
   imports: [
     ScheduleModule.forRoot(),
     // Generous global default — this only exists to stop brute-force/cost

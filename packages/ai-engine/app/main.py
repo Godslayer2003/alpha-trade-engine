@@ -230,7 +230,7 @@ async def assistant_chat(payload: AssistantChatRequest):
     return AssistantChatResponse(
         reply=result.reply,
         citations=citations,
-        model=payload.model,
+        model=result.model,
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
         response_time_ms=result.response_time_ms,

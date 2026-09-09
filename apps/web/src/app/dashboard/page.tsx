@@ -27,10 +27,10 @@ export default function DashboardPage() {
   const [timeframe, setTimeframe] = useState<Timeframe>(Timeframe.ONE_DAY);
 
   return (
-    <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 p-6">
-      <header className="flex flex-wrap justify-between items-center gap-3 mb-3 pb-4">
-        <h1 className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">Alpha-Trade Engine // Terminal</h1>
-        <div className="flex items-center gap-4">
+    <main className="mx-auto min-h-screen max-w-7xl bg-white p-3 text-slate-900 dark:bg-slate-950 dark:text-slate-50 sm:p-6">
+      <header className="mb-3 flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-2xl">Alpha-Trade Engine // Terminal</h1>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link href="/onboarding" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
             Risk questionnaire
           </Link>
@@ -49,9 +49,9 @@ export default function DashboardPage() {
 
       <DisclaimerBanner />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-span-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-2xl sm:p-5">
             <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Live Asset & Pattern Analysis</h2>
             <div className="mb-4">
               <AssetSearchBar
@@ -103,7 +103,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-md dark:shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Practice Portfolio</h2>
             <PortfolioPanel symbol={symbol} assetClass={assetClass} />

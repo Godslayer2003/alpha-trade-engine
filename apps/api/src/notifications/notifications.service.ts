@@ -66,6 +66,41 @@ export class NotificationsService {
     return this.dispatchToChannels(profile.userId, profile.user.email, profile.notificationEmail, profile.dailyReportChannels);
   }
 
+  /** Sends a workflow-specific message through the user's existing notification channels. */
+  async sendWorkflowMessage(
+    userId: string,
+    subject: string,
+    text: string,
+  ): Promise<{ sent: string[]; errors: string[] }> {
+    const profile = await this.prisma.userProfile.findUnique({ where: { userId }, include: { user: true } });
+    if (!profile) throw new NotFoundException('No profile for this user.');
+
+    const sent: string[] = [];
+    const errors: string[] = [];
+    if (profile.dailyReportChannels.includes('TELEGRAM')) {
+      try {
+        const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
+        if (!link?.chatId) errors.push('Telegram: not linked yet — use "Connect Telegram" first.');
+        else {
+          await this.telegramService.sendMessage(link.chatId, text);
+          sent.push('TELEGRAM');
+        }
+      } catch (err) {
+        errors.push(`Telegram: ${(err as Error).message}`);
+      }
+    }
+    if (profile.dailyReportChannels.includes('EMAIL')) {
+      try {
+        const html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+        await this.emailService.sendDailyReport(profile.notificationEmail ?? profile.user.email, subject, html);
+        sent.push('EMAIL');
+      } catch (err) {
+        errors.push(`Email: ${(err as Error).message}`);
+      }
+    }
+    return { sent, errors };
+  }
+
   /** Sends the daily briefing via whichever channels are given, isolating failures per channel — used by both the cron loop and on-demand callers (settings "Send test now", the Workflows module, the agentic chatbot). */
   async dispatchToChannels(
     userId: string,

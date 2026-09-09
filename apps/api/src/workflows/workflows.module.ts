@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MoversModule } from '../movers/movers.module';
+import { AnalysisModule } from '../analysis/analysis.module';
 import { WorkflowsService } from './workflows.service';
 import { WorkflowsController } from './workflows.controller';
 import { WORKFLOWS_SERVICE } from './workflows.tokens';
@@ -11,7 +13,7 @@ import { WORKFLOWS_SERVICE } from './workflows.tokens';
 // lazily via ModuleRef instead — see assistant.service.ts and
 // workflows.tokens.ts.
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, MoversModule, AnalysisModule],
   controllers: [WorkflowsController],
   providers: [WorkflowsService, { provide: WORKFLOWS_SERVICE, useExisting: WorkflowsService }],
   exports: [WorkflowsService],

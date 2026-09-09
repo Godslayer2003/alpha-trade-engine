@@ -25,6 +25,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
   const [chartError, setChartError] = useState<string | null>(null);
   const [chartLoading, setChartLoading] = useState(true);
   const [chartWaking, setChartWaking] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [signal, setSignal] = useState<TradeSignal | null>(null);
   const [loadingSignal, setLoadingSignal] = useState(false);
@@ -48,7 +49,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
         horzLines: { color: isDark ? '#1e293b' : '#e2e8f0' },
       },
       width: containerRef.current.clientWidth,
-      height: 360,
+      height: window.matchMedia('(max-width: 640px)').matches ? 260 : 360,
     });
     chartRef.current = chart;
 
@@ -62,9 +63,14 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
 
     const handleResize = () => {
       if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth });
+        chart.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: window.matchMedia('(max-width: 640px)').matches ? 260 : 360,
+        });
       }
     };
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(containerRef.current);
     window.addEventListener('resize', handleResize);
 
     let cancelled = false;
@@ -105,10 +111,11 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
 
     return () => {
       cancelled = true;
+      resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [symbol, assetClass, timeframe, theme]);
+  }, [symbol, assetClass, timeframe, theme, reloadKey]);
 
   async function requestSignal() {
     setLoadingSignal(true);
@@ -131,7 +138,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-slate-600 dark:text-slate-400">
           {symbol} · {timeframe}
         </span>
@@ -150,9 +157,20 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
           Waking up the server — this can take up to a minute after a while of no visitors…
         </p>
       )}
-      {chartError && <p className="text-sm text-rose-600 dark:text-rose-400">{chartError}</p>}
+      {chartError && (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-rose-600 dark:text-rose-400">
+          <p>{chartError}</p>
+          <button
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+            className="rounded-lg border border-rose-300 px-3 py-1 text-xs font-medium hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/30"
+          >
+            Retry chart
+          </button>
+        </div>
+      )}
 
-      <div ref={containerRef} className="w-full" />
+      <div ref={containerRef} className="w-full min-w-0 overflow-hidden" />
 
       {signalWaking && (
         <p className="text-sm text-amber-600 dark:text-amber-400">

@@ -61,7 +61,17 @@ export function PerformanceDashboard() {
       });
     }
     const chart = chartRef.current;
-    chart.applyOptions({ width: containerRef.current.clientWidth });
+    const resizeChart = () => {
+      if (containerRef.current) {
+        chart.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: window.matchMedia('(max-width: 640px)').matches ? 180 : 220,
+        });
+      }
+    };
+    resizeChart();
+    const resizeObserver = new ResizeObserver(resizeChart);
+    resizeObserver.observe(containerRef.current);
 
     // Swap the series out directly rather than via a returned cleanup
     // function — a separate unmount-only effect below also tears the whole
@@ -79,6 +89,8 @@ export function PerformanceDashboard() {
     }));
     series.setData(data);
     chart.timeScale().fitContent();
+
+    return () => resizeObserver.disconnect();
   }, [performance]);
 
   useEffect(() => {
@@ -116,7 +128,7 @@ export function PerformanceDashboard() {
 
   return (
     <div className="space-y-4">
-      <div ref={containerRef} className="w-full" />
+      <div ref={containerRef} className="w-full min-w-0 overflow-hidden" />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
         <div>

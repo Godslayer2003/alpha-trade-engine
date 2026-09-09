@@ -33,10 +33,20 @@ OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 # OpenRouter's live catalog. Free providers can still briefly rate-limit, so
 # _call_openrouter() can fall back between these two free models without ever
 # silently charging for a paid model.
-DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free'
+DEFAULT_MODEL = 'nex-agi/nex-n2.5-mini:free'
 FREE_MODEL_FALLBACKS: dict[str, tuple[str, ...]] = {
-    'google/gemma-4-26b-a4b-it:free': ('google/gemma-4-31b-it:free',),
-    'google/gemma-4-31b-it:free': ('google/gemma-4-26b-a4b-it:free',),
+    'nex-agi/nex-n2.5-mini:free': (
+        'google/gemma-4-26b-a4b-it:free',
+        'google/gemma-4-31b-it:free',
+    ),
+    'google/gemma-4-26b-a4b-it:free': (
+        'nex-agi/nex-n2.5-mini:free',
+        'google/gemma-4-31b-it:free',
+    ),
+    'google/gemma-4-31b-it:free': (
+        'nex-agi/nex-n2.5-mini:free',
+        'google/gemma-4-26b-a4b-it:free',
+    ),
 }
 
 REQUEST_TIMEOUT_SECONDS = 30.0
@@ -96,7 +106,12 @@ async def _call_openrouter(messages: list[dict[str, str]], model: str) -> tuple[
                 break
 
     assert last_response is not None
-    raise AgentError(f'OpenRouter returned {last_response.status_code}: {last_response.text}')
+    if last_response.status_code == 429 and model in FREE_MODEL_FALLBACKS:
+        raise AgentError(
+            'Free AI providers are temporarily rate-limited. Please try again shortly, '
+            'or select a paid model after adding OpenRouter credit.'
+        )
+    raise AgentError(f'OpenRouter request failed with status {last_response.status_code}.')
 
 
 async def ask(message: str, model: str = DEFAULT_MODEL) -> str:

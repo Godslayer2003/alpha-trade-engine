@@ -1,6 +1,9 @@
 import { AssetClass, MarketCountry, MarketHoursStatus, TradeSignal } from '@alpha-trade/shared-types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+// Keep browser traffic same-origin. Next/Vercel rewrites /backend to the
+// stable Render API origin, so switching the public Vercel domain never
+// breaks charts or authenticated requests through a stale CORS allowlist.
+const API_URL = '/backend';
 
 export type { TradeSignal };
 

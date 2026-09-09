@@ -19,7 +19,7 @@ export class AssistantController {
   // Login is required so the $5 paywall below actually means something —
   // anonymous chat used to be allowed, but that let anyone dodge payment by
   // just logging out. Tighter throttle than the app-wide default — every
-  // call here spends real OpenRouter/Gemini budget.
+  // call here spends real Gemini or OpenAI API budget.
   @Post('chat')
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @UseGuards(JwtAuthGuard)
@@ -28,7 +28,7 @@ export class AssistantController {
     if (!paid) {
       throw new ForbiddenException('AI Guide chat access requires a one-time $5 payment.');
     }
-    return this.assistantService.chat(dto.messages, dto.model, dto.context, user.userId);
+    return this.assistantService.chat(dto.messages, dto.model, dto.context);
   }
 
   @Post('feedback')

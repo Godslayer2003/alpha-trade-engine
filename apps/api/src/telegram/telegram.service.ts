@@ -207,7 +207,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         // normal AI Guide reply, it just can't trigger workflows (those need
         // a resolved userId).
         const link = await this.prisma.telegramLink.findUnique({ where: { chatId: String(ctx.chat!.id) } });
-        const result = await this.assistantService.chat([{ role: 'user', content: question }], undefined, undefined, link?.userId);
+        const result = await this.assistantService.chat([{ role: 'user', content: question }]);
         await ctx.reply(result.reply);
       } catch (err) {
         await ctx.reply(`Could not reach the AI guide: ${(err as Error).message}`);

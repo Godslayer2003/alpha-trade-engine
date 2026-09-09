@@ -1,19 +1,10 @@
 import { HttpException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 import { GoogleGenAI } from '@google/genai';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatMessageDto } from './dto/chat.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { DEFAULT_KNOWLEDGE_BASE, DEFAULT_SYSTEM_PROMPT } from './assistant.defaults';
-// Type-only import — a real (value) import of the WorkflowsService class
-// here would drag in its whole import chain (workflows.service ->
-// notifications.service -> telegram.service -> assistant.service), closing
-// a circular JS module import back on this file and crashing Nest at boot.
-// The runtime lookup below uses WORKFLOWS_SERVICE instead, a
-// dependency-free token, to avoid that entirely.
-import type { WorkflowsService } from '../workflows/workflows.service';
-import { WORKFLOWS_SERVICE } from '../workflows/workflows.tokens';
 
 const CONFIG_ID = 'singleton';
 // Free-tier reasoning models (e.g. deepseek-r1:free) can genuinely take
@@ -45,7 +36,6 @@ export class AssistantService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly moduleRef: ModuleRef,
   ) {}
 
   async getConfig() {
@@ -74,7 +64,6 @@ export class AssistantService {
     messages: ChatMessageDto[],
     model?: string,
     context?: Record<string, unknown>,
-    userId?: string,
   ): Promise<ChatResult> {
     const config = await this.getConfig();
 
@@ -86,18 +75,6 @@ export class AssistantService {
     const last = recent[recent.length - 1];
     const history = recent.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
 
-    // Agentic routing: only attempted for a resolved user (workflows act on
-    // a specific portfolio/channels) — userId is only ever absent here for
-    // an unlinked Telegram chat, since the web chat endpoint now requires
-    // login. Fails open to normal RAG chat on any classification error.
-    // Only deliberate OpenRouter selections use the AI engine for workflow
-    // intent classification. Gemini and direct OpenAI requests must stay with
-    // their respective providers and never consume OpenRouter credits.
-    if (userId && model && model !== GEMINI_DEFAULT_MODEL && model !== OPENAI_MODEL_ID) {
-      const workflowResult = await this.tryRunWorkflow(last.content, userId, model);
-      if (workflowResult) return workflowResult;
-    }
-
     if (!model || model === GEMINI_DEFAULT_MODEL) {
       return this.chatWithGemini(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
     }
@@ -106,29 +83,7 @@ export class AssistantService {
       return this.chatWithOpenAI(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
     }
 
-    const body = await this.fetchJson<{
-      reply: string;
-      citations: { index: number; chunk_text: string; similarity: number }[];
-      model: string;
-      input_tokens: number;
-      output_tokens: number;
-      response_time_ms: number;
-    }>('/v1/assistant/chat', {
-      message: last.content,
-      history,
-      model: model || undefined,
-      system_prompt: config.systemPrompt + contextNote,
-      knowledge_base: config.knowledgeBase,
-    });
-
-    return {
-      reply: body.reply,
-      citations: body.citations.map((c) => ({ index: c.index, chunkText: c.chunk_text, similarity: c.similarity })),
-      model: body.model,
-      inputTokens: body.input_tokens,
-      outputTokens: body.output_tokens,
-      responseTimeMs: body.response_time_ms,
-    };
+    throw new ServiceUnavailableException('The selected AI provider is not available. Choose Gemini or OpenAI.');
   }
 
   private async chatWithGemini(
@@ -239,35 +194,6 @@ export class AssistantService {
     } finally {
       clearTimeout(timeout);
     }
-  }
-
-  /** Classifies whether `message` is asking to run a known workflow and, if so, runs it — returns null to fall through to normal RAG chat. */
-  private async tryRunWorkflow(message: string, userId: string, model?: string): Promise<ChatResult | null> {
-    const workflowsService = this.moduleRef.get<WorkflowsService>(WORKFLOWS_SERVICE, { strict: false });
-    const workflows = workflowsService.listWorkflows();
-
-    let intent: { workflow_id: string | null };
-    try {
-      intent = await this.fetchJson<{ workflow_id: string | null }>('/v1/assistant/intent', {
-        message,
-        workflows: workflows.map((w) => ({ id: w.id, name: w.name, description: w.description })),
-        model: model || undefined,
-      });
-    } catch (err) {
-      // Classification is a nice-to-have on top of normal chat — a
-      // transient ai-engine/network failure here must not break chat for
-      // every signed-in user, so fail open to the regular RAG reply.
-      this.logger.warn(`Workflow intent classification failed, falling back to normal chat: ${(err as Error).message}`);
-      return null;
-    }
-    if (!intent.workflow_id) return null;
-
-    const { sent, errors } = await workflowsService.run(intent.workflow_id, userId);
-    const summary = sent.length
-      ? `Ran "${intent.workflow_id}" — sent via ${sent.join(', ')}.${errors.length ? ` (Some channels failed: ${errors.join('; ')})` : ''}`
-      : `Tried to run "${intent.workflow_id}" but nothing was sent: ${errors.join('; ') || 'no channels configured'}.`;
-
-    return { reply: summary, citations: [], model: `workflow:${intent.workflow_id}`, inputTokens: 0, outputTokens: 0, responseTimeMs: 0 };
   }
 
   async getChunks(chunkSize?: number) {

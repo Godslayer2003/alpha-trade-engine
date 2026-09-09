@@ -1,8 +1,7 @@
 # Alpha-Trade Engine
 
 A paper-trading terminal with an AI guide layered on top: live market data, pattern/signal
-analysis, a practice portfolio, and an OpenRouter-powered chat assistant that can also run
-automated "workflows" (like sending a daily portfolio briefing) on request.
+analysis, a practice portfolio, and direct Gemini or OpenAI chat assistance.
 
 **This app is simulated and advisory only.** There is no live order execution and no broker OAuth
 — the broker recommendation matrix suggests brokers matching your investing style, it never places
@@ -42,8 +41,8 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 | `ADMIN_EMAILS` | Assistant config editing / feedback log | Comma-separated emails; blocked for everyone if unset |
 | `AI_ENGINE_SHARED_SECRET` | Locks down the ai-engine's public URL | Any random string, must match on both `apps/api` and `packages/ai-engine`; optional (unenforced) if unset |
 | `WEB_ORIGIN` | CORS | The web app's origin; any origin allowed if unset |
-| `OPENROUTER_API_KEY` | AI Guide chat, RAG, workflow intent classification | [openrouter.ai/keys](https://openrouter.ai/keys) |
-| `GEMINI_API_KEY` | AI Insight Reports / Market News Explainer / Company Reports | [Google AI Studio](https://aistudio.google.com/apikey) — **not** used by the AI Guide chat |
+| `GEMINI_API_KEY` | Default AI Guide chat, AI Insight Reports / Market News Explainer / Company Reports | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | Optional OpenAI AI Guide selection | OpenAI Platform API key and a model enabled for that project |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot (bot stays disabled if unset) | See "Components" below |
 | `RESEND_API_KEY` | Daily report emails (feature disabled if unset) | [resend.com](https://resend.com) dashboard |
 | `STRIPE_SECRET_KEY` | AI Guide chatbot $5 paywall (chat stays unlocked for everyone if unset) | [dashboard.stripe.com/test/apikeys](https://dashboard.stripe.com/test/apikeys) (use a `sk_test_...` key) |
@@ -60,7 +59,7 @@ flowchart LR
     end
 
     subgraph AGT ["Agent - Brain"]
-        AG("AI Guide<br/>OpenRouter + RAG")
+        AG("AI Guide<br/>Gemini or OpenAI")
         RG("AI Report Generator<br/>Gemini")
     end
 
@@ -80,7 +79,6 @@ flowchart LR
     BN --> RG
 
     Portfolio[("Portfolio / Prisma")] --> WF
-    AG -- "classifies intent,<br/>triggers" --> WF
     WF --> TG
     WF --> EM
 
@@ -109,11 +107,9 @@ flowchart LR
     style TLS fill:#fff7ed,stroke:#fdba74,stroke-width:1px;
 ```
 
-The AI Guide is reachable from the web chat widget and from the Telegram bot's `/ask` command —
-both funnel through the same `AssistantService.chat()` entry point. When a signed-in user's
-message matches a known workflow (e.g. "run my daily briefing"), the AI Guide classifies that
-intent, runs the workflow, and reports back which one ran and where it was sent — instead of just
-answering conversationally.
+The AI Guide is reachable from the web chat widget and from the Telegram bot's `/ask` command;
+both funnel through the same `AssistantService.chat()` entry point. Workflows are started from
+their explicit controls on the Workflows page.
 
 ## Components
 
@@ -127,8 +123,8 @@ See `/components` in the running app for a live status board of everything below
 
 ### Agent (Brain)
 
-- **AI Guide** (OpenRouter + RAG) — get an API key at [openrouter.ai/keys](https://openrouter.ai/keys),
-  set `OPENROUTER_API_KEY`.
+- **AI Guide** — Gemini is the default provider. OpenAI is available only when explicitly selected,
+  using `OPENAI_API_KEY` and `OPENAI_MODEL`.
 - **AI Report Generator** (Gemini) — get an API key at
   [Google AI Studio](https://aistudio.google.com/apikey), set `GEMINI_API_KEY`.
 

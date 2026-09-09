@@ -16,7 +16,9 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
-      - key: OPENROUTER_API_KEY
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
@@ -48,8 +50,6 @@ services:
     dockerfilePath: ./packages/ai-engine/Dockerfile
     dockerContext: .
     envVars:
-      - key: OPENROUTER_API_KEY
-        sync: false
       # Must match AI_ENGINE_SHARED_SECRET on alpha-trade-engine-api above.
       - key: AI_ENGINE_SHARED_SECRET
         sync: false

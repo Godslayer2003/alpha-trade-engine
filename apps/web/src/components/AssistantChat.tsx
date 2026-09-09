@@ -207,10 +207,10 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
             ))}
           </select>
           <a
-            href="https://openrouter.ai/models"
+            href="#"
             target="_blank"
             rel="noreferrer"
-            className="text-[10px] text-emerald-600 dark:text-emerald-400 underline whitespace-nowrap"
+            className="hidden"
           >
             Browse models ↗
           </a>

@@ -1,5 +1,6 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { GoogleGenAI } from '@google/genai';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatMessageDto } from './dto/chat.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
@@ -20,6 +21,7 @@ const CONFIG_ID = 'singleton';
 // budget, which caused false-negative timeouts on real, in-flight replies.
 const REQUEST_TIMEOUT_MS = 45_000;
 const HISTORY_LIMIT = 6;
+export const GEMINI_DEFAULT_MODEL = 'gemini-3.7-flash';
 
 export interface ChatResult {
   reply: string;
@@ -35,6 +37,7 @@ export class AssistantService {
   private readonly logger = new Logger(AssistantService.name);
   private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
   private readonly aiEngineSecret = process.env.AI_ENGINE_SHARED_SECRET;
+  private gemini: GoogleGenAI | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -83,9 +86,16 @@ export class AssistantService {
     // a specific portfolio/channels) — userId is only ever absent here for
     // an unlinked Telegram chat, since the web chat endpoint now requires
     // login. Fails open to normal RAG chat on any classification error.
-    if (userId) {
+    // Gemini is the dependable default. OpenRouter remains available when a
+    // visitor deliberately chooses one of its models; only that optional path
+    // performs OpenRouter-based workflow intent classification.
+    if (userId && model !== GEMINI_DEFAULT_MODEL) {
       const workflowResult = await this.tryRunWorkflow(last.content, userId, model);
       if (workflowResult) return workflowResult;
+    }
+
+    if (!model || model === GEMINI_DEFAULT_MODEL) {
+      return this.chatWithGemini(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
     }
 
     const body = await this.fetchJson<{
@@ -111,6 +121,53 @@ export class AssistantService {
       outputTokens: body.output_tokens,
       responseTimeMs: body.response_time_ms,
     };
+  }
+
+  private async chatWithGemini(
+    message: string,
+    history: { role: 'user' | 'assistant'; content: string }[],
+    systemPrompt: string,
+    knowledgeBase: string,
+  ): Promise<ChatResult> {
+    const started = Date.now();
+    try {
+      const response = await this.getGeminiClient().models.generateContent({
+        model: GEMINI_DEFAULT_MODEL,
+        contents: [
+          ...history.map((item) => ({
+            role: item.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: item.content }],
+          })),
+          { role: 'user', parts: [{ text: message }] },
+        ],
+        config: {
+          systemInstruction:
+            `${systemPrompt}\n\nApp knowledge base (use this for app-specific facts; do not invent missing details):\n${knowledgeBase}`,
+          maxOutputTokens: 1024,
+        },
+      });
+      const reply = response.text?.trim();
+      if (!reply) throw new Error('Gemini returned no text.');
+      return {
+        reply,
+        citations: [],
+        model: GEMINI_DEFAULT_MODEL,
+        inputTokens: 0,
+        outputTokens: 0,
+        responseTimeMs: Date.now() - started,
+      };
+    } catch (err) {
+      this.logger.warn(`Gemini AI Guide request failed: ${(err as Error).message}`);
+      throw new ServiceUnavailableException('Gemini AI Guide is temporarily unavailable. Please try again shortly.');
+    }
+  }
+
+  private getGeminiClient(): GoogleGenAI {
+    if (this.gemini) return this.gemini;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new ServiceUnavailableException('Gemini AI Guide is not configured on this server.');
+    this.gemini = new GoogleGenAI({ apiKey });
+    return this.gemini;
   }
 
   /** Classifies whether `message` is asking to run a known workflow and, if so, runs it — returns null to fall through to normal RAG chat. */

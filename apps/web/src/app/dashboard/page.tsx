@@ -29,7 +29,7 @@ export default function DashboardPage() {
   return (
     <main className="mx-auto min-h-screen max-w-7xl bg-white p-3 text-slate-900 dark:bg-slate-950 dark:text-slate-50 sm:p-6">
       <header className="mb-3 flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-2xl">Alpha-Trade Engine // Terminal</h1>
+        <h1 className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-2xl">Alpha Trade Engine</h1>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link href="/onboarding" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
             Risk questionnaire

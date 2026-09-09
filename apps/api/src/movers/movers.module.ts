@@ -7,5 +7,6 @@ import { MoversService } from './movers.service';
   imports: [MarketModule],
   controllers: [MoversController],
   providers: [MoversService],
+  exports: [MoversService],
 })
 export class MoversModule {}

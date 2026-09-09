@@ -535,17 +535,11 @@ export interface AssistantChatResult {
   responseTimeMs: number;
 }
 
-// Curated so the dropdown has both free and paid options, per the model
-// picker spec — full catalog is linked out to openrouter.ai/models instead
-// of mirrored here.
+// Only direct, project-owned providers are offered in the UI. This keeps the
+// AI Guide independent of OpenRouter provider limits and account credits.
 export const ASSISTANT_MODELS = [
   { id: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (default)' },
   { id: 'openai', label: 'OpenAI (paid, separate key)' },
-  { id: 'nex-agi/nex-n2.5-mini:free', label: 'NEX N2.5 Mini (free)' },
-  { id: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (free)' },
-  { id: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free)' },
-  { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini (paid)' },
-  { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5 (paid)' },
 ] as const;
 
 export async function chatWithAssistant(

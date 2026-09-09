@@ -540,6 +540,7 @@ export interface AssistantChatResult {
 // of mirrored here.
 export const ASSISTANT_MODELS = [
   { id: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (default)' },
+  { id: 'openai', label: 'OpenAI (paid, separate key)' },
   { id: 'nex-agi/nex-n2.5-mini:free', label: 'NEX N2.5 Mini (free)' },
   { id: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (free)' },
   { id: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free)' },

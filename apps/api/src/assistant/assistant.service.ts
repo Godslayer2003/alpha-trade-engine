@@ -22,6 +22,10 @@ const CONFIG_ID = 'singleton';
 const REQUEST_TIMEOUT_MS = 45_000;
 const HISTORY_LIMIT = 6;
 export const GEMINI_DEFAULT_MODEL = 'gemini-3.7-flash';
+// A provider selector rather than a model name: the concrete OpenAI model is
+// owned by server configuration, so it can be changed without exposing a key
+// or shipping billing-related choices to the browser.
+export const OPENAI_MODEL_ID = 'openai';
 
 export interface ChatResult {
   reply: string;
@@ -86,16 +90,20 @@ export class AssistantService {
     // a specific portfolio/channels) — userId is only ever absent here for
     // an unlinked Telegram chat, since the web chat endpoint now requires
     // login. Fails open to normal RAG chat on any classification error.
-    // Gemini is the dependable default. OpenRouter remains available when a
-    // visitor deliberately chooses one of its models; only that optional path
-    // performs OpenRouter-based workflow intent classification.
-    if (userId && model !== GEMINI_DEFAULT_MODEL) {
+    // Only deliberate OpenRouter selections use the AI engine for workflow
+    // intent classification. Gemini and direct OpenAI requests must stay with
+    // their respective providers and never consume OpenRouter credits.
+    if (userId && model && model !== GEMINI_DEFAULT_MODEL && model !== OPENAI_MODEL_ID) {
       const workflowResult = await this.tryRunWorkflow(last.content, userId, model);
       if (workflowResult) return workflowResult;
     }
 
     if (!model || model === GEMINI_DEFAULT_MODEL) {
       return this.chatWithGemini(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
+    }
+
+    if (model === OPENAI_MODEL_ID) {
+      return this.chatWithOpenAI(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
     }
 
     const body = await this.fetchJson<{
@@ -168,6 +176,69 @@ export class AssistantService {
     if (!apiKey) throw new ServiceUnavailableException('Gemini AI Guide is not configured on this server.');
     this.gemini = new GoogleGenAI({ apiKey });
     return this.gemini;
+  }
+
+  private async chatWithOpenAI(
+    message: string,
+    history: { role: 'user' | 'assistant'; content: string }[],
+    systemPrompt: string,
+    knowledgeBase: string,
+  ): Promise<ChatResult> {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL;
+    if (!apiKey || !model) {
+      throw new ServiceUnavailableException('OpenAI is not configured on this server.');
+    }
+
+    const started = Date.now();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          store: false,
+          instructions: `${systemPrompt}\n\nApp knowledge base (use this for app-specific facts; do not invent missing details):\n${knowledgeBase}`,
+          input: [
+            ...history.map((item) => ({ role: item.role, content: item.content })),
+            { role: 'user', content: message },
+          ],
+          max_output_tokens: 1024,
+        }),
+        signal: controller.signal,
+      });
+      const body = await response.json().catch(() => null) as {
+        output_text?: string;
+        error?: { message?: string };
+        usage?: { input_tokens?: number; output_tokens?: number };
+      } | null;
+
+      if (!response.ok) {
+        this.logger.warn(`OpenAI AI Guide request failed with status ${response.status}.`);
+        throw new ServiceUnavailableException('OpenAI AI Guide is temporarily unavailable. Please try again shortly.');
+      }
+      const reply = body?.output_text?.trim();
+      if (!reply) throw new Error('OpenAI returned no text.');
+      return {
+        reply,
+        citations: [],
+        model,
+        inputTokens: body?.usage?.input_tokens ?? 0,
+        outputTokens: body?.usage?.output_tokens ?? 0,
+        responseTimeMs: Date.now() - started,
+      };
+    } catch (err) {
+      if (err instanceof ServiceUnavailableException) throw err;
+      this.logger.warn(`OpenAI AI Guide request failed: ${(err as Error).message}`);
+      throw new ServiceUnavailableException('OpenAI AI Guide is temporarily unavailable. Please try again shortly.');
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   /** Classifies whether `message` is asking to run a known workflow and, if so, runs it — returns null to fall through to normal RAG chat. */

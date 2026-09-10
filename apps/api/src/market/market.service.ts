@@ -1,4 +1,5 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AiEngineClient } from '../ai-engine/ai-engine-client.service';
 import { GetCandlesDto } from './dto/get-candles.dto';
 
 export interface Candle {
@@ -17,15 +18,12 @@ export interface Quote {
   dataSource: string;
 }
 
-const REQUEST_TIMEOUT_MS = 10_000;
-
 @Injectable()
 export class MarketService {
-  private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
-  private readonly aiEngineSecret = process.env.AI_ENGINE_SHARED_SECRET;
+  constructor(private readonly aiEngine: AiEngineClient) {}
 
   async getCandles(dto: GetCandlesDto): Promise<Candle[]> {
-    return this.fetchJson<Candle[]>('/v1/market/candles', {
+    return this.aiEngine.get<Candle[]>('/v1/market/candles', {
       symbol: dto.symbol,
       asset_class: dto.assetClass,
       timeframe: dto.timeframe,
@@ -33,7 +31,7 @@ export class MarketService {
   }
 
   async getQuote(symbol: string, assetClass: string): Promise<Quote> {
-    const body = await this.fetchJson<{
+    const body = await this.aiEngine.get<{
       symbol: string;
       price: number;
       as_of: string;
@@ -46,34 +44,5 @@ export class MarketService {
       asOf: body.as_of,
       dataSource: body.data_source,
     };
-  }
-
-  private async fetchJson<T>(path: string, params: Record<string, string>): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    let res: Response;
-    try {
-      res = await fetch(`${this.aiEngineUrl}${path}?${new URLSearchParams(params)}`, {
-        headers: this.aiEngineSecret ? { 'x-internal-secret': this.aiEngineSecret } : undefined,
-        signal: controller.signal,
-      });
-    } catch (err) {
-      throw new HttpException(
-        `Could not reach the AI analysis engine at ${this.aiEngineUrl}: ${(err as Error).message}`,
-        502,
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    const body = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      const detail = (body && (body as { detail?: string }).detail) || `status ${res.status}`;
-      throw new HttpException(detail, res.status);
-    }
-
-    return body as T;
   }
 }

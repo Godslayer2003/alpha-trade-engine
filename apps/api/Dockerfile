@@ -1,5 +1,5 @@
-# Built with the monorepo root as build context (see RAILWAY_DOCKERFILE_PATH
-# in the deploy setup) so `npm ci` can resolve the npm-workspaces dependency
+# Built with the monorepo root as the Render Docker context so `npm ci` can
+# resolve the npm-workspaces dependency
 # on @alpha-trade/shared-types.
 FROM node:20-slim
 
@@ -16,7 +16,7 @@ RUN npm run build --workspace=packages/shared-types
 
 # prisma generate only needs DATABASE_URL to be a well-formed connection
 # string at build time (no live DB connection is made) — the real DATABASE_URL
-# is injected at runtime by Railway and used below to apply migrations.
+# is injected at runtime by Render and used below to apply migrations.
 ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 RUN npx prisma generate --schema packages/database/prisma/schema.prisma
 

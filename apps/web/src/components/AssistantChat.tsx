@@ -206,14 +206,6 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
               </option>
             ))}
           </select>
-          <a
-            href="#"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden"
-          >
-            Browse models ↗
-          </a>
         </div>
       </div>
 

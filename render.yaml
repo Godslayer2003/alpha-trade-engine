@@ -1,4 +1,4 @@
-# Render Blueprint — replaces Railway for the API server and AI engine.
+# Render Blueprint for the API server and AI engine.
 # Deploy via Render's dashboard: New > Blueprint, point it at this repo.
 # No secrets live in this file (sync: false means "ask the user to type it
 # in during setup, store it only in Render, never in git").

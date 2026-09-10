@@ -6,14 +6,14 @@ const nextConfig: NextConfig = {
   // the request to Render server-side, so adding or replacing a Vercel domain
   // never requires a matching CORS change on the API service.
   //
-  // NEXT_PUBLIC_API_URL already holds the stable Render API origin in Vercel
-  // and is only used here at build time as the rewrite destination.
+  // BACKEND_API_URL holds the stable Render API origin in Vercel and is only
+  // used server-side at build time as the rewrite destination.
   // Serves /dashboard's content at / directly (200), instead of a 307
   // redirect — crawlers that don't follow redirects (e.g. AdSense's
   // site-verification check) need to see the page — and real content —
   // right at the registered root URL.
   async rewrites() {
-    const backendApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001').replace(/\/$/, '');
+    const backendApiUrl = (process.env.BACKEND_API_URL ?? 'http://localhost:3001').replace(/\/$/, '');
     return [
       { source: '/', destination: '/dashboard' },
       { source: '/backend/:path*', destination: `${backendApiUrl}/:path*` },

@@ -46,7 +46,7 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 | `TELEGRAM_BOT_TOKEN` | Telegram bot (bot stays disabled if unset) | See "Components" below |
 | `RESEND_API_KEY` | Daily report emails (feature disabled if unset) | [resend.com](https://resend.com) dashboard |
 | `STRIPE_SECRET_KEY` | AI Guide chatbot $5 paywall (chat stays unlocked for everyone if unset) | [dashboard.stripe.com/test/apikeys](https://dashboard.stripe.com/test/apikeys) (use a `sk_test_...` key) |
-| `NEXT_PUBLIC_API_URL` | Web → API | Defaults to `http://localhost:3001` |
+| `BACKEND_API_URL` | Vercel/Next server proxy → API | Defaults to `http://localhost:3001`; never exposed to browser code |
 | `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | "Connect Telegram" deep link | Your bot's `@username` |
 
 ## Architecture

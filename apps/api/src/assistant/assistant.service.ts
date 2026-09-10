@@ -1,5 +1,6 @@
-import { HttpException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { GoogleGenAI } from '@google/genai';
+import { AiEngineClient } from '../ai-engine/ai-engine-client.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatMessageDto } from './dto/chat.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
@@ -7,9 +8,6 @@ import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { DEFAULT_KNOWLEDGE_BASE, DEFAULT_SYSTEM_PROMPT } from './assistant.defaults';
 
 const CONFIG_ID = 'singleton';
-// Free-tier reasoning models (e.g. deepseek-r1:free) can genuinely take
-// 30s+ to respond even when everything is warm — longer than the old 30s
-// budget, which caused false-negative timeouts on real, in-flight replies.
 const REQUEST_TIMEOUT_MS = 45_000;
 const HISTORY_LIMIT = 6;
 export const GEMINI_DEFAULT_MODEL = 'gemini-3.7-flash';
@@ -30,12 +28,11 @@ export interface ChatResult {
 @Injectable()
 export class AssistantService {
   private readonly logger = new Logger(AssistantService.name);
-  private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
-  private readonly aiEngineSecret = process.env.AI_ENGINE_SHARED_SECRET;
   private gemini: GoogleGenAI | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly aiEngine: AiEngineClient,
   ) {}
 
   async getConfig() {
@@ -198,10 +195,10 @@ export class AssistantService {
 
   async getChunks(chunkSize?: number) {
     const config = await this.getConfig();
-    return this.fetchJson<{ index: number; text: string; tokens: number }[]>('/v1/assistant/chunks', {
+    return this.aiEngine.post<{ index: number; text: string; tokens: number }[]>('/v1/assistant/chunks', {
       knowledge_base: config.knowledgeBase,
       chunk_size: chunkSize || undefined,
-    });
+    }, REQUEST_TIMEOUT_MS);
   }
 
   async createFeedback(dto: CreateFeedbackDto) {
@@ -217,43 +214,5 @@ export class AssistantService {
       rows,
       stats: { up, down, total, positivePct: total > 0 ? Math.round((up / total) * 1000) / 10 : 0 },
     };
-  }
-
-  private async fetchJson<T>(path: string, payload: Record<string, unknown>): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    // Strip undefined so FastAPI's model defaults (e.g. default model,
-    // default chunk size) kick in rather than a JSON `null` colliding with them.
-    const body = Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
-
-    let res: Response;
-    try {
-      res = await fetch(`${this.aiEngineUrl}${path}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.aiEngineSecret ? { 'x-internal-secret': this.aiEngineSecret } : {}),
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-    } catch (err) {
-      throw new HttpException(
-        `Could not reach the AI engine at ${this.aiEngineUrl}: ${(err as Error).message}`,
-        502,
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      const detail = (json && (json as { detail?: string }).detail) || `status ${res.status}`;
-      throw new HttpException(detail, res.status);
-    }
-
-    return json as T;
   }
 }

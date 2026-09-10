@@ -23,7 +23,7 @@ export function BrokerRecommendationWidget({ style }: BrokerRecommendationWidget
         if (!cancelled) setMatches(result);
       })
       .catch(() => {
-        if (!cancelled) setError('Could not reach the API. Is apps/api running on ' + (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001') + '?');
+        if (!cancelled) setError('Could not reach the API. Please try again shortly.');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

@@ -513,7 +513,7 @@ export async function fetchReport(
   return res.json();
 }
 
-// --- AI guide chat (RAG-grounded, via OpenRouter through packages/ai-engine) ---
+// --- AI guide chat (direct Gemini or OpenAI through apps/api) ---
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -535,8 +535,7 @@ export interface AssistantChatResult {
   responseTimeMs: number;
 }
 
-// Only direct, project-owned providers are offered in the UI. This keeps the
-// AI Guide independent of OpenRouter provider limits and account credits.
+// Only direct, project-owned providers are offered in the UI.
 export const ASSISTANT_MODELS = [
   { id: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (default)' },
   { id: 'openai', label: 'OpenAI (paid, separate key)' },
@@ -548,9 +547,8 @@ export async function chatWithAssistant(
   model?: string,
   token?: string,
 ): Promise<AssistantChatResult> {
-  // Auth is optional here — anonymous dashboard chat must keep working —
-  // but sending the token when present lets the backend resolve a userId,
-  // which the agentic chatbot needs to trigger workflows.
+  // The API requires authentication because chat access is tied to the
+  // account's payment status.
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/v1/assistant/chat`, {

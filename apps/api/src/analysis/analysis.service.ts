@@ -1,5 +1,6 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DealType, TradeSignal } from '@alpha-trade/shared-types';
+import { AiEngineClient } from '../ai-engine/ai-engine-client.service';
 import { GetSignalDto } from './dto/get-signal.dto';
 
 // Mirrors the AI engine's SignalResponse (packages/ai-engine/app/main.py) —
@@ -18,15 +19,16 @@ interface AiEngineSignalResponse {
   generated_at: string;
 }
 
-const REQUEST_TIMEOUT_MS = 10_000;
-
 @Injectable()
 export class AnalysisService {
-  private readonly aiEngineUrl = process.env.AI_ENGINE_URL ?? 'http://localhost:8000';
-  private readonly aiEngineSecret = process.env.AI_ENGINE_SHARED_SECRET;
+  constructor(private readonly aiEngine: AiEngineClient) {}
 
   async getTradeSignal(dto: GetSignalDto): Promise<TradeSignal> {
-    const response = await this.callAiEngine(dto);
+    const response = await this.aiEngine.post<AiEngineSignalResponse>('/v1/analysis/signal', {
+      symbol: dto.symbol,
+      asset_class: dto.assetClass,
+      timeframe: dto.timeframe,
+    });
     return {
       patternDetected: response.pattern_detected,
       dealType: response.deal_type as DealType,
@@ -39,43 +41,5 @@ export class AnalysisService {
       disclaimer: response.disclaimer,
       generatedAt: response.generated_at,
     };
-  }
-
-  private async callAiEngine(dto: GetSignalDto): Promise<AiEngineSignalResponse> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    let res: Response;
-    try {
-      res = await fetch(`${this.aiEngineUrl}/v1/analysis/signal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.aiEngineSecret ? { 'x-internal-secret': this.aiEngineSecret } : {}),
-        },
-        body: JSON.stringify({
-          symbol: dto.symbol,
-          asset_class: dto.assetClass,
-          timeframe: dto.timeframe,
-        }),
-        signal: controller.signal,
-      });
-    } catch (err) {
-      throw new HttpException(
-        `Could not reach the AI analysis engine at ${this.aiEngineUrl}: ${(err as Error).message}`,
-        502,
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    const body = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      const detail = (body && (body as { detail?: string }).detail) || `status ${res.status}`;
-      throw new HttpException(detail, res.status);
-    }
-
-    return body as AiEngineSignalResponse;
   }
 }

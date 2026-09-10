@@ -4,18 +4,9 @@ import { MoversModule } from '../movers/movers.module';
 import { AnalysisModule } from '../analysis/analysis.module';
 import { WorkflowsService } from './workflows.service';
 import { WorkflowsController } from './workflows.controller';
-import { WORKFLOWS_SERVICE } from './workflows.tokens';
-
-// Deliberately NOT imported by AssistantModule (would close a
-// AssistantModule -> WorkflowsModule -> NotificationsModule -> TelegramModule
-// -> AssistantModule cycle, since TelegramModule already imports
-// AssistantModule for /ask). AssistantService resolves WorkflowsService
-// lazily via ModuleRef instead — see assistant.service.ts and
-// workflows.tokens.ts.
 @Module({
   imports: [NotificationsModule, MoversModule, AnalysisModule],
   controllers: [WorkflowsController],
-  providers: [WorkflowsService, { provide: WORKFLOWS_SERVICE, useExisting: WorkflowsService }],
-  exports: [WorkflowsService],
+  providers: [WorkflowsService],
 })
 export class WorkflowsModule {}

@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { PaymentsModule } from './payments/payments.module';
 import { HealthController } from './health.controller';
+import { AiEngineModule } from './ai-engine/ai-engine.module';
 
 @Module({
   controllers: [HealthController],
@@ -32,6 +33,7 @@ import { HealthController } from './health.controller';
     // throttle normal dashboard usage.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
+    AiEngineModule,
     AnalysisModule,
     BrokerModule,
     SectorsModule,

@@ -11,9 +11,8 @@ export interface WorkflowDefinition {
   description: string;
 }
 
-// Single source of truth for what a workflow is, used both by the Workflows
-// dashboard/API and by the agentic chatbot's intent classifier — add new
-// runnable workflows here and in run() below.
+// Single source of truth for the Workflows dashboard/API. Add new runnable
+// workflows here and in run() below.
 export const WORKFLOW_REGISTRY: WorkflowDefinition[] = [
   {
     id: 'daily-briefing',

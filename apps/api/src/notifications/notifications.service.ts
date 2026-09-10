@@ -59,7 +59,7 @@ export class NotificationsService {
     }
   }
 
-  /** Runs the Daily Portfolio Briefing workflow on demand for one user (used by the Workflows module + agentic chatbot). */
+  /** Runs the Daily Portfolio Briefing workflow on demand for one user. */
   async runBriefingForUser(userId: string): Promise<{ sent: string[]; errors: string[] }> {
     const profile = await this.prisma.userProfile.findUnique({ where: { userId }, include: { user: true } });
     if (!profile) throw new NotFoundException('No profile for this user.');
@@ -101,7 +101,7 @@ export class NotificationsService {
     return { sent, errors };
   }
 
-  /** Sends the daily briefing via whichever channels are given, isolating failures per channel — used by both the cron loop and on-demand callers (settings "Send test now", the Workflows module, the agentic chatbot). */
+  /** Sends the daily briefing via whichever channels are given, isolating failures per channel. */
   async dispatchToChannels(
     userId: string,
     accountEmail: string,

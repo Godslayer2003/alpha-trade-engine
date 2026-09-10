@@ -50,7 +50,7 @@ export class ReportsService {
   }
 
   private async generate(dto: GetReportDto, periodLabel: string) {
-    const model = process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL;
+    const model = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
     const timeframe = monthsToTimeframe(dto.months);
     const candles = await this.marketService.getCandles({
       symbol: dto.symbol,

@@ -88,7 +88,7 @@ export class AssistantService {
     knowledgeBase: string,
   ): Promise<ChatResult> {
     const started = Date.now();
-    const model = process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL;
+    const model = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
     try {
       const response = await this.getGeminiClient().models.generateContent({
         model,

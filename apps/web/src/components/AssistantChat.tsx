@@ -76,7 +76,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
     if (!token || unlocking) return;
     setUnlocking(true);
     try {
-      const { url } = await createCheckoutSession(token, window.location.href);
+      const { url } = await createCheckoutSession(token);
       window.location.href = url;
     } catch (err) {
       setError((err as Error).message);

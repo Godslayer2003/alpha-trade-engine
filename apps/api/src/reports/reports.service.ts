@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MarketService } from '../market/market.service';
 import { GetReportDto } from './dto/get-report.dto';
 
-const MODEL = 'gemini-3.6-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.7-flash';
 
 // Rounds a requested month count up to the nearest timeframe the ai-engine's
 // candle fetchers actually support (see packages/ai-engine/app/data_sources/common.py).
@@ -50,6 +50,7 @@ export class ReportsService {
   }
 
   private async generate(dto: GetReportDto, periodLabel: string) {
+    const model = process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL;
     const timeframe = monthsToTimeframe(dto.months);
     const candles = await this.marketService.getCandles({
       symbol: dto.symbol,
@@ -80,7 +81,7 @@ export class ReportsService {
 
     try {
       const interaction = await client.interactions.create({
-        model: MODEL,
+        model,
         system_instruction:
           'You are a markets analyst explaining real price moves using current, factual information. Never fabricate news.',
         input: prompt,
@@ -93,7 +94,7 @@ export class ReportsService {
       // (confirmed to 429 on the current free-tier key) — fall back to a
       // technical/price-action-only narrative rather than failing outright,
       // clearly labeled as ungrounded so the UI never implies real news backing.
-      this.logger.warn(`Grounded report generation failed, falling back: ${(err as Error).message}`);
+      this.logger.warn('Grounded report generation failed; using the technical fallback.');
       const fallbackPrompt =
         `${dto.symbol} has ${direction} ${Math.abs(pctChange).toFixed(1)}% over the last ${dto.months} ` +
         `month(s), moving from $${first.close.toFixed(2)} to $${last.close.toFixed(2)} ` +
@@ -103,7 +104,7 @@ export class ReportsService {
         `working from price action only, not news.`;
       try {
         const interaction = await client.interactions.create({
-          model: MODEL,
+          model,
           system_instruction:
             'You are a markets analyst. You do NOT have access to live news or search — explain price moves ' +
             'purely in terms of the technical price action given to you.',
@@ -112,7 +113,7 @@ export class ReportsService {
         });
         return this.saveReport(dto, periodLabel, interaction.output_text ?? '', false);
       } catch (fallbackErr) {
-        this.logger.error(`Fallback report generation also failed: ${(fallbackErr as Error).message}`);
+        this.logger.error('Fallback report generation failed.');
         throw new ServiceUnavailableException(
           'The AI report service is temporarily unavailable (rate limited) — try again in a minute.',
         );

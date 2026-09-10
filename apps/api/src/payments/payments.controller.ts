@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/current-user.decorator';
@@ -15,8 +15,8 @@ export class PaymentsController {
   }
 
   @Post('checkout')
-  checkout(@CurrentUser() user: AuthenticatedUser, @Body('returnUrl') returnUrl: string) {
-    return this.paymentsService.createCheckoutSession(user.userId, user.email, returnUrl);
+  checkout(@CurrentUser() user: AuthenticatedUser) {
+    return this.paymentsService.createCheckoutSession(user.userId, user.email);
   }
 
   @Get('verify')

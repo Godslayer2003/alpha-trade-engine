@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { fetchCandles, fetchReport, fetchWithWakeupRetry, type AiReport } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 
 interface TradeNewsWidgetProps {
   symbol: string;
@@ -34,6 +35,7 @@ const CATEGORY_TO_ASSET_CLASS: Record<MarketCategory, AssetClass> = {
 const RECENT_MONTHS = 1;
 
 export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
+  const { token } = useAuth();
   // Null until the user searches something themselves — until then this
   // panel just follows whatever's charted above.
   const [manual, setManual] = useState<{ symbol: string; assetClass: AssetClass } | null>(null);
@@ -67,7 +69,7 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
       () =>
         Promise.all([
           fetchCandles(activeSymbol, activeAssetClass, '1M'),
-          fetchReport(activeSymbol, activeAssetClass, RECENT_MONTHS),
+          token ? fetchReport(token, activeSymbol, activeAssetClass, RECENT_MONTHS) : Promise.resolve(null),
         ]),
       () => {
         if (!cancelled) setWaking(true);
@@ -81,6 +83,7 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
           setPctChange(((last - first) / first) * 100);
         }
         setReport(reportResult);
+        if (!reportResult) setError('Log in to load the AI news explanation.');
       })
       .catch(() => {
         if (!cancelled) setError(`Could not load recent news for ${activeSymbol}.`);
@@ -95,7 +98,7 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
     return () => {
       cancelled = true;
     };
-  }, [activeSymbol, activeAssetClass]);
+  }, [activeSymbol, activeAssetClass, token]);
 
   function submitSearch() {
     const trimmed = draft.trim();

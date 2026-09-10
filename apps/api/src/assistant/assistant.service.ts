@@ -10,7 +10,8 @@ import { DEFAULT_KNOWLEDGE_BASE, DEFAULT_SYSTEM_PROMPT } from './assistant.defau
 const CONFIG_ID = 'singleton';
 const REQUEST_TIMEOUT_MS = 45_000;
 const HISTORY_LIMIT = 6;
-export const GEMINI_DEFAULT_MODEL = 'gemini-3.7-flash';
+export const GEMINI_PROVIDER_ID = 'gemini';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.7-flash';
 // A provider selector rather than a model name: the concrete OpenAI model is
 // owned by server configuration, so it can be changed without exposing a key
 // or shipping billing-related choices to the browser.
@@ -36,13 +37,10 @@ export class AssistantService {
   ) {}
 
   async getConfig() {
-    const existing = await this.prisma.assistantConfig.findUnique({ where: { id: CONFIG_ID } });
-    if (existing) return existing;
-
-    // Materialize the defaults on first read so the Settings page always has
-    // something to show and edit, and later reads/writes are plain upserts.
-    return this.prisma.assistantConfig.create({
-      data: { id: CONFIG_ID, systemPrompt: DEFAULT_SYSTEM_PROMPT, knowledgeBase: DEFAULT_KNOWLEDGE_BASE },
+    return this.prisma.assistantConfig.upsert({
+      where: { id: CONFIG_ID },
+      update: {},
+      create: { id: CONFIG_ID, systemPrompt: DEFAULT_SYSTEM_PROMPT, knowledgeBase: DEFAULT_KNOWLEDGE_BASE },
     });
   }
 
@@ -72,7 +70,7 @@ export class AssistantService {
     const last = recent[recent.length - 1];
     const history = recent.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
 
-    if (!model || model === GEMINI_DEFAULT_MODEL) {
+    if (!model || model === GEMINI_PROVIDER_ID) {
       return this.chatWithGemini(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
     }
 
@@ -90,9 +88,10 @@ export class AssistantService {
     knowledgeBase: string,
   ): Promise<ChatResult> {
     const started = Date.now();
+    const model = process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL;
     try {
       const response = await this.getGeminiClient().models.generateContent({
-        model: GEMINI_DEFAULT_MODEL,
+        model,
         contents: [
           ...history.map((item) => ({
             role: item.role === 'assistant' ? 'model' : 'user',
@@ -111,13 +110,13 @@ export class AssistantService {
       return {
         reply,
         citations: [],
-        model: GEMINI_DEFAULT_MODEL,
+        model,
         inputTokens: 0,
         outputTokens: 0,
         responseTimeMs: Date.now() - started,
       };
     } catch (err) {
-      this.logger.warn(`Gemini AI Guide request failed: ${(err as Error).message}`);
+      this.logger.warn('Gemini AI Guide request failed.');
       throw new ServiceUnavailableException('Gemini AI Guide is temporarily unavailable. Please try again shortly.');
     }
   }
@@ -186,7 +185,7 @@ export class AssistantService {
       };
     } catch (err) {
       if (err instanceof ServiceUnavailableException) throw err;
-      this.logger.warn(`OpenAI AI Guide request failed: ${(err as Error).message}`);
+      this.logger.warn('OpenAI AI Guide request failed.');
       throw new ServiceUnavailableException('OpenAI AI Guide is temporarily unavailable. Please try again shortly.');
     } finally {
       clearTimeout(timeout);

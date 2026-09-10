@@ -28,14 +28,24 @@ export class PaymentsService {
     // No Stripe configured (e.g. local dev without a key) — paywall
     // disabled entirely rather than locking chat out with no way to pay,
     // matching how TELEGRAM_BOT_TOKEN/RESEND_API_KEY degrade when unset.
-    if (!this.stripe) return { paid: true, admin: false };
+    if (!this.stripe) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new BadRequestException('Payments are temporarily unavailable.');
+      }
+      return { paid: true, admin: false };
+    }
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     if (this.adminEmails.includes(user.email.toLowerCase())) return { paid: true, admin: true };
     return { paid: user.chatAccessPaid, admin: false };
   }
 
-  async createCheckoutSession(userId: string, email: string, returnUrl: string): Promise<{ url: string }> {
+  async createCheckoutSession(userId: string, email: string): Promise<{ url: string }> {
     const stripe = this.requireStripe();
+    const webOrigin = process.env.WEB_ORIGIN?.split(',')[0]?.trim().replace(/\/$/, '');
+    if (!webOrigin) {
+      throw new BadRequestException('Payments are not configured (WEB_ORIGIN is not set).');
+    }
+    const returnUrl = `${webOrigin}/dashboard`;
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       client_reference_id: userId,

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { fetchReport, type AiReport } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 
 interface InsightReportPanelProps {
   symbol: string;
@@ -18,6 +19,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export function InsightReportPanel({ symbol, assetClass }: InsightReportPanelProps) {
+  const { token } = useAuth();
   const [querySymbol, setQuerySymbol] = useState(symbol);
   const [months, setMonths] = useState(4);
   const [report, setReport] = useState<AiReport | null>(null);
@@ -26,11 +28,14 @@ export function InsightReportPanel({ symbol, assetClass }: InsightReportPanelPro
 
   async function handleGenerate() {
     const trimmed = querySymbol.trim();
-    if (!trimmed) return;
+    if (!trimmed || !token) {
+      setError('Log in to generate an AI report.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      setReport(await fetchReport(trimmed, assetClass, months));
+      setReport(await fetchReport(token, trimmed, assetClass, months));
     } catch (err) {
       setError((err as Error).message);
     } finally {

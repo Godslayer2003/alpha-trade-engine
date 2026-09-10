@@ -145,7 +145,7 @@ enum AssistantRating {
 // Singleton row (id fixed to "singleton") holding the live, editable AI
 // Guide prompt + knowledge base. Falls back to defaults.ts constants when
 // no row exists yet — DB-backed rather than a flat file so edits survive
-// Railway redeploys.
+// service redeploys.
 model AssistantConfig {
   id            String   @id @default("singleton")
   systemPrompt  String

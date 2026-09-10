@@ -12,6 +12,13 @@ interface LocalClock {
   dateKey: string; // YYYY-MM-DD in the target timezone
 }
 
+export function isWithinDueWindow(dailyReportTime: string, currentMinutes: number): boolean {
+  const [hours, minutes] = dailyReportTime.split(':').map(Number);
+  const targetMinutes = hours * 60 + minutes;
+  const minutesSinceTarget = (currentMinutes - targetMinutes + 1440) % 1440;
+  return minutesSinceTarget < 5;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -39,7 +46,7 @@ export class NotificationsService {
         if (!this.isDue(profile.dailyReportTime, clock.minutesSinceMidnight)) continue;
         if (this.alreadySentToday(profile.lastDailyReportSentAt, profile.dailyReportTimezone, clock.dateKey)) continue;
 
-        const { errors } = await this.dispatchToChannels(
+        const { sent, errors } = await this.dispatchToChannels(
           profile.userId,
           profile.user.email,
           profile.notificationEmail,
@@ -49,10 +56,12 @@ export class NotificationsService {
           this.logger.warn(`Daily report partially failed for user ${profile.userId}: ${errors.join('; ')}`);
         }
 
-        await this.prisma.userProfile.update({
-          where: { id: profile.id },
-          data: { lastDailyReportSentAt: new Date() },
-        });
+        if (sent.length > 0) {
+          await this.prisma.userProfile.update({
+            where: { id: profile.id },
+            data: { lastDailyReportSentAt: new Date() },
+          });
+        }
       } catch (err) {
         this.logger.warn(`Daily report failed for user ${profile.userId}: ${(err as Error).message}`);
       }
@@ -145,10 +154,8 @@ export class NotificationsService {
   }
 
   async buildReportText(userId: string): Promise<string> {
-    const [portfolio, performance] = await Promise.all([
-      this.portfolioService.getPortfolio(userId),
-      this.portfolioService.getPerformance(userId),
-    ]);
+    const portfolio = await this.portfolioService.getPortfolio(userId);
+    const performance = await this.portfolioService.getPerformance(userId, portfolio);
 
     const lines = [
       '📊 Your Daily Portfolio Report',
@@ -210,10 +217,7 @@ export class NotificationsService {
   }
 
   private isDue(dailyReportTime: string, currentMinutes: number): boolean {
-    const [h, m] = dailyReportTime.split(':').map(Number);
-    const targetMinutes = h * 60 + m;
-    const diff = (targetMinutes - currentMinutes + 1440) % 1440;
-    return diff < 5;
+    return isWithinDueWindow(dailyReportTime, currentMinutes);
   }
 
   private alreadySentToday(lastSentAt: Date | null, timezone: string, todayKey: string): boolean {

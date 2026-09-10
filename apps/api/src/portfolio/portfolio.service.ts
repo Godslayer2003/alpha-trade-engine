@@ -47,7 +47,7 @@ export class PortfolioService {
   // from trade history + the current live portfolio value — no scheduled
   // snapshot job exists, so between-trade granularity is stepped (valued at
   // each trade's own fill price, not continuous intraday marks).
-  async getPerformance(userId: string) {
+  async getPerformance(userId: string, livePortfolio?: Awaited<ReturnType<PortfolioService['getPortfolio']>>) {
     const portfolio = await this.findPortfolioOrThrow(userId);
     const trades = await this.prisma.trade.findMany({
       where: { portfolioId: portfolio.id },
@@ -108,7 +108,7 @@ export class PortfolioService {
       equityCurve.push({ t: trade.executedAt.toISOString(), value: runningCash + positionsValue });
     }
 
-    const live = await this.getPortfolio(userId);
+    const live = livePortfolio ?? await this.getPortfolio(userId);
     equityCurve.push({ t: new Date().toISOString(), value: live.totalValue });
 
     return {

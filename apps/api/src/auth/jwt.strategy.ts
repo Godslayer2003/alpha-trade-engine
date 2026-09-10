@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import type { Request } from 'express';
 
 export interface JwtPayload {
   sub: string;
@@ -17,7 +18,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new Error('JWT_SECRET is not set (check your .env file).');
     }
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request: Request) => {
+          const cookie = request.headers.cookie
+            ?.split(';')
+            .map((part) => part.trim())
+            .find((part) => part.startsWith('alpha_trade_session='));
+          if (!cookie) return null;
+          try {
+            return decodeURIComponent(cookie.slice('alpha_trade_session='.length));
+          } catch {
+            return null;
+          }
+        },
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET,
     });

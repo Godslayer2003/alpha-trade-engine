@@ -61,7 +61,7 @@ export default function ComponentsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <ComponentCard
               name="AI Guide"
-              description="OpenRouter-backed, RAG-grounded chat over the app's knowledge base. Also classifies workflow intent — see Workflows."
+              description="Direct Gemini chat by default, with optional direct OpenAI access and an editable app knowledge base."
               status="implemented"
               href="/settings/assistant"
             />

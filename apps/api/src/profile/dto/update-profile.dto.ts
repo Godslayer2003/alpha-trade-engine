@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsTimeZone,
   Matches,
   Max,
   MaxLength,
@@ -76,7 +77,7 @@ export class UpdateProfileDto {
   @IsOptional()
   dailyReportTime?: string;
 
-  @IsString()
+  @IsTimeZone()
   @MaxLength(100)
   @IsOptional()
   dailyReportTimezone?: string;

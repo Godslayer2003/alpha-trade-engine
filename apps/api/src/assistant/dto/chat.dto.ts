@@ -1,11 +1,13 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -14,12 +16,14 @@ export class ChatMessageDto {
   role!: 'user' | 'assistant';
 
   @IsString()
+  @MaxLength(4_000)
   content!: string;
 }
 
 export class ChatRequestDto {
   @IsArray()
   @ArrayMinSize(1)
+  @ArrayMaxSize(12)
   @ValidateNested({ each: true })
   @Type(() => ChatMessageDto)
   messages!: ChatMessageDto[];
@@ -29,6 +33,6 @@ export class ChatRequestDto {
   context?: Record<string, unknown>;
 
   @IsOptional()
-  @IsString()
+  @IsIn(['gemini', 'openai'])
   model?: string;
 }

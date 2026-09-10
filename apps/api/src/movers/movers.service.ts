@@ -35,6 +35,7 @@ const MIN_ABS_Z_SCORE = 2;
 const BASELINE_WINDOW = 20;
 const TOP_N = 10;
 const CONCURRENCY = 8;
+const CACHE_TTL_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class MoversService {
@@ -48,7 +49,9 @@ export class MoversService {
   async getOrScan(): Promise<Mover[]> {
     const scanDate = new Date().toISOString().slice(0, 10);
     const cached = await this.prisma.moverScan.findUnique({ where: { scanDate } });
-    if (cached) return cached.movers as unknown as Mover[];
+    if (cached && Date.now() - cached.createdAt.getTime() < CACHE_TTL_MS) {
+      return cached.movers as unknown as Mover[];
+    }
     return this.scan(scanDate);
   }
 

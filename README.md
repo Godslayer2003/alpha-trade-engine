@@ -39,8 +39,8 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 | `AI_ENGINE_URL` | `apps/api` → `packages/ai-engine` calls | Defaults to `http://localhost:8000` |
 | `JWT_SECRET` | Auth | Any random string in dev |
 | `ADMIN_EMAILS` | Assistant config editing / feedback log | Comma-separated emails; blocked for everyone if unset |
-| `AI_ENGINE_SHARED_SECRET` | Locks down the ai-engine's public URL | Any random string, must match on both `apps/api` and `packages/ai-engine`; optional (unenforced) if unset |
-| `WEB_ORIGIN` | CORS | The web app's origin; any origin allowed if unset |
+| `AI_ENGINE_SHARED_SECRET` | Locks down the ai-engine's public URL | A strong random string that must match on both `apps/api` and `packages/ai-engine` |
+| `WEB_ORIGIN` | CORS and payment redirects | Comma-separated trusted web origins; required in production |
 | `GEMINI_API_KEY` | Default AI Guide chat, AI Insight Reports / Market News Explainer / Company Reports | [Google AI Studio](https://aistudio.google.com/apikey) |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Optional OpenAI AI Guide selection | OpenAI Platform API key and a model enabled for that project |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot (bot stays disabled if unset) | See "Components" below |

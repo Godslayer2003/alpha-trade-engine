@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PortfolioService } from '../portfolio/portfolio.service';
 import { AnalysisService } from '../analysis/analysis.service';
 import { AssistantService } from '../assistant/assistant.service';
+import { PaymentsService } from '../payments/payments.service';
 
 const currency = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 
@@ -14,12 +15,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegramService.name);
   private bot: Telegraf | null = null;
   private launchGeneration = 0;
+  private shuttingDown = false;
+  private readonly launchTimers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly portfolioService: PortfolioService,
     private readonly analysisService: AnalysisService,
     private readonly assistantService: AssistantService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   private token: string | null = null;
@@ -34,7 +38,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.launchWithRetry();
   }
 
-  // Railway's rolling deploys briefly run the old and new containers at
+  // Rolling deploys can briefly run the old and new containers at
   // once, so the new instance's first getUpdates call reliably 409s against
   // the still-shutting-down old one. A Telegraf instance whose launch()
   // already rejected can't just be re-launched (its internal polling state
@@ -52,47 +56,61 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   private static readonly LAUNCH_GRACE_MS = 8_000;
 
   private launchWithRetry(attempt = 1) {
+    if (this.shuttingDown || !this.token) return;
     const generation = ++this.launchGeneration;
     this.logger.log(`Telegram: launch attempt ${attempt} starting`);
     const bot = new Telegraf(this.token!);
     bot.catch((err, ctx) => {
-      this.logger.error(`Unhandled error in Telegram handler: ${(err as Error).message}`, (err as Error).stack);
+      this.logger.error('Unhandled error in a Telegram command handler.');
       ctx.reply('Something went wrong handling that — try again in a moment.').catch(() => {});
     });
     this.registerHandlers(bot);
 
     let markedRunning = false;
+    let graceTimer: ReturnType<typeof setTimeout>;
 
     bot.launch().catch((err) => {
       if (generation !== this.launchGeneration) return;
+      clearTimeout(graceTimer);
+      this.launchTimers.delete(graceTimer);
       if (markedRunning) {
         // Was healthy past the grace window, but the connection has now
         // genuinely failed (e.g. a conflicting poller started later) —
         // clear it so sendMessage() doesn't keep trying a dead instance.
         this.bot = null;
       }
-      this.logger.warn(`Telegram bot launch attempt ${attempt} failed: ${(err as Error).message}`);
+      this.logger.warn(`Telegram bot launch attempt ${attempt} failed.`);
       // Keeps retrying indefinitely (capped backoff) rather than giving up —
       // a stale container from a previous deploy can hold the getUpdates
       // lock longer than a few quick attempts would cover.
       const delay = Math.min(attempt * 5_000, 30_000);
       this.logger.log(`Telegram: retrying in ${delay}ms`);
-      setTimeout(() => {
+      const retryTimer = setTimeout(() => {
+        this.launchTimers.delete(retryTimer);
+        if (this.shuttingDown) return;
         this.logger.log('Telegram: retry timer fired');
         this.launchWithRetry(attempt + 1);
       }, delay);
+      this.launchTimers.add(retryTimer);
     });
 
-    setTimeout(() => {
+    graceTimer = setTimeout(() => {
+      this.launchTimers.delete(graceTimer);
       if (generation !== this.launchGeneration) return;
       markedRunning = true;
       this.bot = bot;
       this.logger.log('Telegram bot started (long polling).');
     }, TelegramService.LAUNCH_GRACE_MS);
+    this.launchTimers.add(graceTimer);
   }
 
   onModuleDestroy() {
+    this.shuttingDown = true;
+    this.launchGeneration += 1;
+    for (const timer of this.launchTimers) clearTimeout(timer);
+    this.launchTimers.clear();
     this.bot?.stop('module_destroy');
+    this.bot = null;
   }
 
   /** Proactive push (e.g. from the daily-report cron), separate from the reactive command handlers below. */
@@ -118,7 +136,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   async createLinkCode(userId: string): Promise<string> {
-    const code = randomBytes(4).toString('hex');
+    const code = randomBytes(16).toString('hex');
     await this.prisma.telegramLink.upsert({
       where: { userId },
       create: { userId, linkCode: code },
@@ -206,7 +224,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         // Not hard-required like /portfolio — an unlinked chat still gets a
         // normal AI Guide reply, it just can't trigger workflows (those need
         // a resolved userId).
-        const link = await this.prisma.telegramLink.findUnique({ where: { chatId: String(ctx.chat!.id) } });
+        const userId = await this.requireLinkedUser(ctx);
+        if (!userId) return;
+        const { paid } = await this.paymentsService.getStatus(userId);
+        if (!paid) {
+          await ctx.reply('AI Guide access is not unlocked for this account. Complete checkout in the dashboard first.');
+          return;
+        }
         const result = await this.assistantService.chat([{ role: 'user', content: question }]);
         await ctx.reply(result.reply);
       } catch (err) {
@@ -224,7 +248,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const chatId = String(ctx.chat!.id);
     await this.prisma.telegramLink.update({
       where: { id: link.id },
-      data: { chatId, linkedAt: new Date() },
+      data: { chatId, linkedAt: new Date(), linkCode: randomBytes(16).toString('hex') },
     });
     await ctx.reply('Linked! Try /portfolio, /signal <symbol>, or /ask <question>.');
   }

@@ -179,7 +179,6 @@ export async function fetchMovers(): Promise<Mover[]> {
 // --- Auth ---
 
 export interface AuthResult {
-  accessToken: string;
   user: { id: string; email: string };
 }
 
@@ -201,6 +200,17 @@ export async function loginAccount(email: string, password: string): Promise<Aut
   });
   if (!res.ok) return throwOnError(res, 'Could not log in');
   return res.json();
+}
+
+export async function fetchSession(): Promise<AuthResult> {
+  const res = await fetch(`${API_URL}/api/v1/auth/session`, { cache: 'no-store' });
+  if (!res.ok) return throwOnError(res, 'No active session');
+  return res.json();
+}
+
+export async function logoutAccount(): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/auth/logout`, { method: 'POST' });
+  if (!res.ok) await throwOnError(res, 'Could not log out');
 }
 
 // --- Portfolio (paper trading) ---
@@ -234,8 +244,8 @@ export interface Trade {
   executedAt: string;
 }
 
-function authHeaders(token: string): HeadersInit {
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+function authHeaders(_token: string): HeadersInit {
+  return { 'Content-Type': 'application/json' };
 }
 
 export async function fetchPortfolio(token: string): Promise<Portfolio> {
@@ -503,12 +513,13 @@ export interface AiReport {
 }
 
 export async function fetchReport(
+  token: string,
   symbol: string,
   assetClass: AssetClass,
   months: number,
 ): Promise<AiReport> {
   const params = new URLSearchParams({ symbol, assetClass, months: String(months) });
-  const res = await fetch(`${API_URL}/api/v1/reports?${params.toString()}`);
+  const res = await fetch(`${API_URL}/api/v1/reports?${params.toString()}`, { headers: authHeaders(token) });
   if (!res.ok) return throwOnError(res, 'Could not generate report');
   return res.json();
 }
@@ -537,7 +548,7 @@ export interface AssistantChatResult {
 
 // Only direct, project-owned providers are offered in the UI.
 export const ASSISTANT_MODELS = [
-  { id: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (default)' },
+  { id: 'gemini', label: 'Gemini (default)' },
   { id: 'openai', label: 'OpenAI (paid, separate key)' },
 ] as const;
 
@@ -677,11 +688,10 @@ export async function fetchPaymentStatus(token: string): Promise<{ paid: boolean
   return res.json();
 }
 
-export async function createCheckoutSession(token: string, returnUrl: string): Promise<{ url: string }> {
+export async function createCheckoutSession(token: string): Promise<{ url: string }> {
   const res = await fetch(`${API_URL}/api/v1/payments/checkout`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({ returnUrl }),
   });
   if (!res.ok) return throwOnError(res, 'Could not start checkout');
   return res.json();

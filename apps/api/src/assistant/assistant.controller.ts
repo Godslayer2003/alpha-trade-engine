@@ -32,6 +32,7 @@ export class AssistantController {
   }
 
   @Post('feedback')
+  @UseGuards(JwtAuthGuard)
   async createFeedback(@Body() dto: CreateFeedbackDto) {
     return this.assistantService.createFeedback(dto);
   }

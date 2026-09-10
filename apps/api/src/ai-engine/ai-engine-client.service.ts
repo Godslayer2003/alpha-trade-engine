@@ -7,6 +7,12 @@ export class AiEngineClient {
   private readonly baseUrl = (process.env.AI_ENGINE_URL ?? 'http://localhost:8000').replace(/\/$/, '');
   private readonly sharedSecret = process.env.AI_ENGINE_SHARED_SECRET;
 
+  constructor() {
+    if (process.env.NODE_ENV === 'production' && !this.sharedSecret) {
+      throw new Error('AI_ENGINE_SHARED_SECRET must be configured in production.');
+    }
+  }
+
   get<T>(path: string, params: Record<string, string>, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
     return this.request<T>(`${path}?${new URLSearchParams(params)}`, { method: 'GET' }, timeoutMs);
   }

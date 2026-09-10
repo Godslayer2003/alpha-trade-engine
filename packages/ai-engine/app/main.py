@@ -4,7 +4,7 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import rag, signal_engine
 from .data_sources import binance, yahoo
@@ -16,10 +16,12 @@ logger = logging.getLogger('uvicorn.error')
 
 # This service is deployed as its own public Render URL with no auth of its
 # own — without this, anyone who finds that URL could call it directly
-# (bypassing the api's login/guards) and burn the OpenRouter/Gemini budget.
+# (bypassing the API's login and authorization guards).
 # Optional (like TELEGRAM_BOT_TOKEN etc.) so local dev without the env var
 # set keeps working unauthenticated.
 _SHARED_SECRET = os.environ.get('AI_ENGINE_SHARED_SECRET')
+if os.environ.get('RENDER') and not _SHARED_SECRET:
+    raise RuntimeError('AI_ENGINE_SHARED_SECRET is required on Render.')
 
 
 @app.middleware("http")
@@ -152,7 +154,7 @@ async def get_signal(payload: SignalRequest):
 
 class AssistantChunksRequest(BaseModel):
     knowledge_base: str
-    chunk_size: int = rag.DEFAULT_CHUNK_SIZE_TOKENS
+    chunk_size: int = Field(default=rag.DEFAULT_CHUNK_SIZE_TOKENS, ge=8, le=4096)
 
 
 class ChunkResponse(BaseModel):

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { fetchReport, type AiReport } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 
 // Same five names as the dashboard's quick-pick stock list (AssetSearchBar) —
 // keeps the curated set consistent across the app rather than inventing a
@@ -21,6 +22,7 @@ const COMPANIES = [
 const REPORT_MONTHS = 4;
 
 export function CompanyReportsWidget() {
+  const { token } = useAuth();
   const [symbol, setSymbol] = useState(COMPANIES[0].symbol);
   const [draft, setDraft] = useState('');
   const [report, setReport] = useState<AiReport | null>(null);
@@ -39,7 +41,13 @@ export function CompanyReportsWidget() {
     setError(null);
     setReport(null);
 
-    fetchReport(symbol, AssetClass.EQUITY, REPORT_MONTHS)
+    if (!token) {
+      setLoading(false);
+      setError('Log in to load AI company reports.');
+      return;
+    }
+
+    fetchReport(token, symbol, AssetClass.EQUITY, REPORT_MONTHS)
       .then((result) => {
         if (!cancelled) setReport(result);
       })
@@ -53,7 +61,7 @@ export function CompanyReportsWidget() {
     return () => {
       cancelled = true;
     };
-  }, [symbol]);
+  }, [symbol, token]);
 
   return (
     <div className="space-y-3">

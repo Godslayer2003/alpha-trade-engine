@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   // No WEB_ORIGIN set (e.g. local dev) reflects any origin, same as before —
   // in production it's set to the real site so a browser on some other
   // domain can't call this API using a visitor's cookies/session.

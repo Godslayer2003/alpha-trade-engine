@@ -17,6 +17,9 @@
     "test:e2e": "npm run test:e2e --workspace=apps/api",
     "prisma:generate": "prisma generate --schema packages/database/prisma/schema.prisma"
   },
+  "overrides": {
+    "multer": "2.4.0"
+  },
   "devDependencies": {
     "concurrently": "^9.1.0",
     "prisma": "^5.20.0",

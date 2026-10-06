@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
+import { UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface JwtPayload {
   sub: string;
@@ -10,7 +12,7 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     // No silent fallback — a guessable default secret here would let anyone
     // forge a valid login token. JWT_SECRET is documented as required in
     // .env.example, so a missing one is a misconfiguration, not a valid state.
@@ -38,7 +40,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload) {
-    return { userId: payload.sub, email: payload.email };
+  async validate(payload: JwtPayload) {
+    if (typeof payload.sub !== 'string') throw new UnauthorizedException();
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true },
+    });
+    if (!user) throw new UnauthorizedException();
+    return { userId: user.id, email: user.email };
   }
 }

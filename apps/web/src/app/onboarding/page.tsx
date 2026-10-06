@@ -22,8 +22,7 @@ const GOAL_OPTIONS = [
 const EXPERIENCE_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
 
 export default function OnboardingPage() {
-  const { user, loading: authLoading } = useAuth();
-  const { token } = useAuth();
+  const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [riskTolerance, setRiskTolerance] = useState('MODERATE');
@@ -55,13 +54,14 @@ export default function OnboardingPage() {
     }
   }
 
-  if (authLoading) return null;
+  if (authLoading) return <main className="workspace-shell"><h1 className="text-2xl font-semibold">Risk profile</h1><p role="status" className="mt-4">Checking your session…</p></main>;
 
   if (!user) {
     return (
       <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-3">
-          <p className="text-slate-700 dark:text-slate-300">Log in first on the dashboard, then come back here.</p>
+          <h1 className="text-2xl font-semibold">Risk profile</h1>
+          <p className="text-slate-700 dark:text-slate-300">Sign in using the navigation above to set your research preferences.</p>
           <Link href="/dashboard" className="text-emerald-600 dark:text-emerald-400 underline">
             Go to dashboard
           </Link>

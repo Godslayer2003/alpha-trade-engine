@@ -26,3 +26,6 @@ Thumbs.db
 .env*
 
 .jest-cache/
+.security-scan/
+strix_runs/
+.playwright-cli/

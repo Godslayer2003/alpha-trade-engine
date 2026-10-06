@@ -14,3 +14,7 @@ __pycache__
 .github
 
 *.log
+.env*
+.security-scan
+strix_runs
+.playwright-cli

@@ -180,13 +180,14 @@ export default function SettingsPage() {
     }
   }
 
-  if (authLoading || loading) return null;
+  if (authLoading || loading) return <main className="workspace-shell"><h1 className="text-2xl font-semibold">Settings</h1><p role="status" className="mt-4">Loading your account settings…</p></main>;
 
   if (!user) {
     return (
       <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-3">
-          <p className="text-slate-700 dark:text-slate-300">Log in first on the dashboard, then come back here.</p>
+          <h1 className="text-2xl font-semibold">Settings</h1>
+          <p className="text-slate-700 dark:text-slate-300">Sign in using the navigation above to manage your account.</p>
           <Link href="/dashboard" className="text-emerald-600 dark:text-emerald-400 underline">
             Go to dashboard
           </Link>

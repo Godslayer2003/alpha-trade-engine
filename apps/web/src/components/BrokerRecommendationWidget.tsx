@@ -41,7 +41,7 @@ export function BrokerRecommendationWidget({ style }: BrokerRecommendationWidget
     <ul className="space-y-3">
       {matches.map((match) => (
         <li key={match.brokerName} className="border border-slate-200 dark:border-slate-800 rounded-lg p-3">
-          <div className="flex justify-between items-baseline">
+          <div className="flex flex-wrap justify-between items-baseline gap-2">
             <span className="font-medium text-slate-800 dark:text-slate-200">{match.brokerName}</span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400">{Math.round(match.matchScore * 100)}% match</span>
           </div>

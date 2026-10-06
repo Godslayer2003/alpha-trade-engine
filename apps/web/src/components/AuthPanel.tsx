@@ -21,12 +21,12 @@ export function AuthPanel() {
     else dialog.current?.close();
   }, [open, user]);
 
-  if (loading) return null;
+  if (loading) return <span aria-hidden="true" className="inline-block h-10 w-20" />;
 
   if (user) {
     return (
-      <div className="flex items-center gap-3 text-sm">
-        <span className="text-slate-600 dark:text-slate-400">{user.email}</span>
+      <div className="flex min-w-0 flex-wrap items-center gap-3 text-sm">
+        <span title={user.email} className="hidden max-w-40 truncate text-slate-600 dark:text-slate-400 xl:inline">{user.email}</span>
         <button
           disabled={submitting}
           onClick={async () => {
@@ -63,7 +63,7 @@ export function AuthPanel() {
 
   return (
     <>
-    <button type="button" onClick={() => setOpen(true)} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">Sign in</button>
+    <button type="button" onClick={() => setOpen(true)} className="button-primary">Sign in</button>
     <dialog ref={dialog} aria-labelledby="auth-title" onCancel={() => setOpen(false)} onClose={() => setOpen(false)}
       className="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 backdrop:bg-slate-950/70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
       <div className="mb-5 flex items-center justify-between"><h2 id="auth-title" className="text-xl font-semibold">{mode === 'login' ? 'Welcome back' : 'Create an account'}</h2>

@@ -3,8 +3,8 @@ import { DealType, TradeSignal } from '@alpha-trade/shared-types';
 import { AiEngineClient } from '../ai-engine/ai-engine-client.service';
 import { GetSignalDto } from './dto/get-signal.dto';
 
-// Mirrors the AI engine's SignalResponse (packages/ai-engine/app/main.py) —
-// Python's own snake_case convention, translated to the shared camelCase
+// Mirrors the AI engine's Signal (packages/ai-engine/src/analysis.ts).
+// Preserve its snake_case HTTP contract, translated to the shared camelCase
 // TradeSignal contract below before it reaches any TS consumer.
 interface AiEngineSignalResponse {
   pattern_detected: string;

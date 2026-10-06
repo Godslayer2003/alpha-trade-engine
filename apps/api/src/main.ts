@@ -8,7 +8,10 @@ import { AppModule } from './app.module';
 import { isAllowedSessionWrite } from './security/request-origin';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  if (process.env.NODE_ENV === 'production' && Buffer.from(process.env.MFA_ENCRYPTION_KEY ?? '', 'base64').length !== 32) {
+    throw new Error('MFA_ENCRYPTION_KEY must encode 32 random bytes in production.');
+  }
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
   // No WEB_ORIGIN set (e.g. local dev) reflects any origin, same as before —
   // in production it's set to the real site so a browser on some other
@@ -33,7 +36,8 @@ async function bootstrap() {
   });
   // Express's default body-parser limit (100kb) would otherwise reject a
   // base64-encoded 10MB profile picture before it ever reaches validation.
-  app.use(json({ limit: '15mb' }));
+  app.use('/api/v1/profile', json({ limit: '15mb' }));
+  app.use(json({ limit: '100kb' }));
   // Without this, onModuleDestroy never fires on SIGTERM — during a rolling
   // deploy the old container's Telegram long-poll can stay open until
   // force-killed, guaranteeing a 409 conflict for the new container.

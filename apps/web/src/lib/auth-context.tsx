@@ -12,7 +12,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, otp?: string) => Promise<void>;
   register: (email: string, password: string, acceptedTerms: boolean) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -45,8 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(nextUser);
   }
 
-  async function login(email: string, password: string) {
-    const result = await loginAccount(email, password);
+  async function login(email: string, password: string, otp?: string) {
+    const result = await loginAccount(email, password, otp);
     persist(result.user);
   }
 
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    await logoutAccount().catch(() => undefined);
+    await logoutAccount();
     setToken(null);
     setUser(null);
   }

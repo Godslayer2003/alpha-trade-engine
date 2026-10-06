@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class LoginDto {
   @IsEmail()
@@ -10,4 +10,9 @@ export class LoginDto {
   @IsNotEmpty()
   @MaxLength(128)
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  otp?: string;
 }

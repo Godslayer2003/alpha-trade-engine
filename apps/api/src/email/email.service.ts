@@ -10,6 +10,13 @@ const REQUEST_TIMEOUT_MS = 25_000;
 export class EmailService {
   private client: Resend | null = null;
 
+  async sendAccountEmail(to: string, subject: string, html: string): Promise<void> {
+    const from = process.env.EMAIL_FROM;
+    if (!from) throw new ServiceUnavailableException('A verified account email sender is required.');
+    const result = await this.getClient().emails.send({ from, to, subject, html });
+    if (result.error) throw new ServiceUnavailableException('Account email could not be delivered.');
+  }
+
   async sendDailyReport(to: string, subject: string, html: string): Promise<void> {
     const client = this.getClient();
 

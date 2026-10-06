@@ -30,7 +30,7 @@ export function DisclaimerBanner() {
   }
 
   return (
-    <div className="mb-8 px-4 py-3 rounded-xl bg-rose-100 dark:bg-rose-950 border-2 border-rose-400 dark:border-rose-800 relative">
+    <div className="mb-8 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 relative">
       {confirming ? (
         <div className="flex flex-col items-center gap-2 py-1">
           <p className="text-sm font-semibold text-rose-700 dark:text-rose-400 text-center">
@@ -60,10 +60,10 @@ export function DisclaimerBanner() {
           >
             ✕ Dismiss
           </button>
-          <p className="text-base sm:text-lg font-extrabold text-rose-700 dark:text-rose-400 text-center">
-            Rules-based technical analysis — NOT FINANCIAL ADVICE
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 pr-16">
+            Research and simulated trading · Not financial advice
           </p>
-          <p className="text-sm font-semibold text-rose-700 dark:text-rose-400 text-center mt-1">
+          <p className="text-xs text-slate-500 mt-2 pr-16">
             All trading decisions and their outcomes are your sole responsibility. See our{' '}
             <Link href="/disclaimer" className="underline hover:text-rose-900 dark:hover:text-rose-200">
               Disclaimer &amp; Terms

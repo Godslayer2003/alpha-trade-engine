@@ -7,8 +7,8 @@ export class RegisterDto {
   @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
   email!: string;
 
-  @MinLength(8)
-  @MaxLength(128)
+  @MinLength(12)
+  @MaxLength(72)
   password!: string;
 
   @Equals(true, { message: 'You must accept the disclaimer & terms to create an account.' })

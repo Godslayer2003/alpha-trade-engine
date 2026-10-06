@@ -192,11 +192,11 @@ export async function registerAccount(email: string, password: string, acceptedT
   return res.json();
 }
 
-export async function loginAccount(email: string, password: string): Promise<AuthResult> {
+export async function loginAccount(email: string, password: string, otp?: string): Promise<AuthResult> {
   const res = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, otp }),
   });
   if (!res.ok) return throwOnError(res, 'Could not log in');
   return res.json();

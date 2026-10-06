@@ -24,6 +24,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
   const chartRef = useRef<IChartApi | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
   const [chartLoading, setChartLoading] = useState(true);
+  const [lastCandleAt, setLastCandleAt] = useState<string | null>(null);
   const [chartWaking, setChartWaking] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -75,6 +76,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
 
     let cancelled = false;
     setChartLoading(true);
+    setLastCandleAt(null);
     setChartError(null);
     setChartWaking(false);
 
@@ -86,6 +88,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
     )
       .then((candles) => {
         if (cancelled) return;
+        setLastCandleAt(candles.at(-1)?.time ?? null);
         // Use a full Unix timestamp rather than a date-only string: several
         // timeframes (1H, 1M) fetch multiple intraday candles per calendar
         // day, and a date-only key would collapse them onto the same point.
@@ -147,7 +150,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
           disabled={loadingSignal || chartLoading}
           className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white"
         >
-          {loadingSignal ? 'Analyzing…' : 'Get AI Signal'}
+          {loadingSignal ? 'Analyzing…' : 'Technical signal'}
         </button>
       </div>
 
@@ -171,6 +174,7 @@ export function CandlestickChartWidget({ symbol, assetClass, timeframe }: Candle
       )}
 
       <div ref={containerRef} className="w-full min-w-0 overflow-hidden" />
+      {lastCandleAt && <p className="text-xs text-slate-500">Latest candle: {new Date(lastCandleAt).toLocaleString()}. Market data may be delayed; the chart is historical data.</p>}
 
       {signalWaking && (
         <p className="text-sm text-amber-600 dark:text-amber-400">

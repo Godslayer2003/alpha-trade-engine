@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export interface JwtPayload {
   sub: string;
   email: string;
+  sid?: string;
 }
 
 @Injectable()
@@ -41,12 +42,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    if (typeof payload.sub !== 'string') throw new UnauthorizedException();
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, email: true },
+    if (typeof payload.sub !== 'string' || typeof payload.sid !== 'string') throw new UnauthorizedException();
+    const session = await this.prisma.authSession.findUnique({
+      where: { id: payload.sid },
+      include: { user: { select: { id: true, email: true, role: true } } },
     });
-    if (!user) throw new UnauthorizedException();
-    return { userId: user.id, email: user.email };
+    if (!session || session.userId !== payload.sub || session.revokedAt || session.expiresAt <= new Date()) {
+      throw new UnauthorizedException();
+    }
+    return { userId: session.user.id, email: session.user.email, role: session.user.role,
+      mfaVerified: session.mfaVerified, sessionId: session.id };
   }
 }

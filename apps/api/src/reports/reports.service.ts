@@ -4,6 +4,7 @@ import { AssetClass } from '@alpha-trade/shared-types';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketService } from '../market/market.service';
 import { GetReportDto } from './dto/get-report.dto';
+import { SecurityQuotaService } from '../auth/security-quota.service';
 
 const DEFAULT_GEMINI_MODEL = 'gemini-3.7-flash';
 
@@ -27,6 +28,7 @@ export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly marketService: MarketService,
+    private readonly quota: SecurityQuotaService,
   ) {}
 
   async getOrGenerate(dto: GetReportDto) {
@@ -46,6 +48,7 @@ export class ReportsService {
     });
     if (cached) return cached;
 
+    await this.quota.consume('ai-global', 'application', 500, 86_400_000);
     return this.generate(dto, periodLabel);
   }
 

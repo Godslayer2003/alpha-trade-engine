@@ -9,6 +9,8 @@ const { JwtStrategy } = require('../apps/api/dist/auth/jwt.strategy');
 const { MfaService } = require('../apps/api/dist/auth/mfa.service');
 const { AccountTokenService } = require('../apps/api/dist/auth/account-token.service');
 const { SecurityQuotaService } = require('../apps/api/dist/auth/security-quota.service');
+const { AccountManagementService } = require('../apps/api/dist/auth/account-management.service');
+const { RetentionService } = require('../apps/api/dist/auth/retention.service');
 
 async function main() {
   const url = new URL(process.env.DATABASE_URL || '');
@@ -24,6 +26,7 @@ async function main() {
   const email = `security-${randomBytes(8).toString('hex')}@example.invalid`;
   const password = randomBytes(24).toString('hex');
   let userId;
+  let unrelatedId;
   try {
     const registered = await auth.register({ email, password, acceptedTerms: true });
     userId = registered.user.id;
@@ -73,8 +76,33 @@ async function main() {
     assert.equal((await strategy.validate(jwt.verify(recovered.accessToken))).mfaVerified, true);
     await auth.revokeAllSessions(userId);
     await assert.rejects(strategy.validate(jwt.verify(recovered.accessToken)));
+    const accounts = new AccountManagementService(prisma, mfa);
+    const unrelated = await auth.register({ email: `other-${email}`, password, acceptedTerms: true });
+    unrelatedId = unrelated.user.id;
+    await assert.rejects(accounts.exportData(userId, { password: 'incorrect' }));
+    await assert.rejects(accounts.deleteAccount(userId, { password: nextPassword }));
+    await prisma.userProfile.upsert({ where: { userId }, create: { userId, profilePictureUrl: 'data:image/png;base64,fixture' }, update: { profilePictureUrl: 'data:image/png;base64,fixture' } });
+    await accounts.removePicture(userId);
+    assert.equal((await prisma.userProfile.findUniqueOrThrow({ where: { userId } })).profilePictureUrl, null);
+    const feedback = await prisma.assistantFeedback.create({ data: { userId, question: 'fixture', answer: 'fixture', rating: 'UP', model: 'fixture', responseTimeMs: 0, inputTokens: 0, outputTokens: 0 } });
+    const exported = await accounts.exportData(userId, { password: nextPassword, otp: enrolled.recoveryCodes[2] });
+    assert.equal(exported.email, email);
+    assert.equal(exported.assistantFeedback.length, 1);
+    for (const secret of ['passwordHash', 'mfaSecret', 'mfaRecoveryHashes', 'authSessions', 'accountTokens']) assert(!Object.hasOwn(exported, secret));
+    await prisma.assistantFeedback.update({ where: { id: feedback.id }, data: { createdAt: new Date(Date.now() - 31 * 86400000) } });
+    await new RetentionService(prisma).purgeExpired();
+    assert.equal(await prisma.assistantFeedback.findUnique({ where: { id: feedback.id } }), null);
+    await prisma.assistantFeedback.create({ data: { userId, question: 'fresh', answer: 'fixture', rating: 'UP', model: 'fixture', responseTimeMs: 0, inputTokens: 0, outputTokens: 0 } });
+    await accounts.deleteAccount(userId, { password: nextPassword, otp: enrolled.recoveryCodes[3] });
+    assert.equal(await prisma.user.count({ where: { id: userId } }), 0);
+    assert.equal(await prisma.userProfile.count({ where: { userId } }), 0);
+    assert.equal(await prisma.assistantFeedback.count({ where: { userId } }), 0);
+    assert.equal(await prisma.authSession.count({ where: { userId } }), 0);
+    assert.equal(await prisma.user.count({ where: { id: unrelatedId } }), 1);
+    userId = undefined;
     console.log('Database security integration checks passed.');
   } finally {
+    if (unrelatedId) await prisma.user.delete({ where: { id: unrelatedId } });
     if (userId) {
       await prisma.portfolio.deleteMany({ where: { userId } });
       await prisma.user.delete({ where: { id: userId } });

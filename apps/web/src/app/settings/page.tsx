@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { ConnectTelegramButton } from '@/components/ConnectTelegramButton';
 import { AccountSecurityPanel } from '@/components/AccountSecurityPanel';
+import { DataPrivacyPanel } from '@/components/DataPrivacyPanel';
 import {
   fetchProfile,
   updateProfile,
@@ -191,6 +192,7 @@ export default function SettingsPage() {
         </div>
 
         <AccountSecurityPanel />
+        <DataPrivacyPanel />
         <section className={CARD}>
           <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Appearance</h2>
           <div className="flex items-center justify-between">

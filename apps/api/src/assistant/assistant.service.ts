@@ -6,6 +6,7 @@ import { ChatMessageDto } from './dto/chat.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { DEFAULT_KNOWLEDGE_BASE, DEFAULT_SYSTEM_PROMPT } from './assistant.defaults';
+import { SAFETY_INSTRUCTION } from './safety';
 
 const CONFIG_ID = 'singleton';
 const REQUEST_TIMEOUT_MS = 45_000;
@@ -71,11 +72,11 @@ export class AssistantService {
     const history = recent.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
 
     if (!model || model === GEMINI_PROVIDER_ID) {
-      return this.chatWithGemini(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
+      return this.chatWithGemini(last.content, history, config.systemPrompt + SAFETY_INSTRUCTION + contextNote, config.knowledgeBase);
     }
 
     if (model === OPENAI_MODEL_ID) {
-      return this.chatWithOpenAI(last.content, history, config.systemPrompt + contextNote, config.knowledgeBase);
+      return this.chatWithOpenAI(last.content, history, config.systemPrompt + SAFETY_INSTRUCTION + contextNote, config.knowledgeBase);
     }
 
     throw new ServiceUnavailableException('The selected AI provider is not available. Choose Gemini or OpenAI.');
@@ -200,8 +201,8 @@ export class AssistantService {
     }, REQUEST_TIMEOUT_MS);
   }
 
-  async createFeedback(dto: CreateFeedbackDto) {
-    return this.prisma.assistantFeedback.create({ data: dto });
+  async createFeedback(dto: CreateFeedbackDto, userId: string) {
+    return this.prisma.assistantFeedback.create({ data: { ...dto, userId } });
   }
 
   async listFeedback() {

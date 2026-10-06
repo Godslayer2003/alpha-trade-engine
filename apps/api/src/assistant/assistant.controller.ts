@@ -9,6 +9,7 @@ import { ChatRequestDto } from './dto/chat.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { SecurityQuotaService } from '../auth/security-quota.service';
+import { crisisResponse } from './safety';
 
 @Controller('api/v1/assistant')
 export class AssistantController {
@@ -26,6 +27,9 @@ export class AssistantController {
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @UseGuards(JwtAuthGuard)
   async chat(@Body() dto: ChatRequestDto, @CurrentUser() user: AuthenticatedUser) {
+    const last = dto.messages[dto.messages.length - 1];
+    const crisis = last.role === 'user' ? crisisResponse(last.content) : null;
+    if (crisis) return crisis;
     const { paid } = await this.paymentsService.getStatus(user.userId);
     if (!paid) {
       throw new ForbiddenException('AI Guide chat access requires a one-time $5 payment.');
@@ -37,8 +41,8 @@ export class AssistantController {
 
   @Post('feedback')
   @UseGuards(JwtAuthGuard)
-  async createFeedback(@Body() dto: CreateFeedbackDto) {
-    return this.assistantService.createFeedback(dto);
+  async createFeedback(@Body() dto: CreateFeedbackDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.assistantService.createFeedback(dto, user.userId);
   }
 
   // Config editing, the chunk breakdown, and the eval results are all

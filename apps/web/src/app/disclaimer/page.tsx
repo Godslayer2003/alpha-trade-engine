@@ -75,9 +75,9 @@ export default function DisclaimerPage() {
           <section>
             <h2 className="font-semibold text-slate-900 dark:text-slate-100 mb-1.5">6. AI Guide chatbot access is non-refundable</h2>
             <p>
-              Unlocking the AI Guide chat is a one-time $5 payment. All sales are final — payments for AI Guide
-              chatbot access are non-refundable, for any reason, once made. Please make sure you want access before
-              paying.
+              Unlocking the AI Guide chat is a one-time $5 payment with no automatic renewal. Payments are
+              non-refundable except where applicable law requires otherwise. This policy does not limit your
+              statutory rights. Please review the features before paying.
             </p>
           </section>
 

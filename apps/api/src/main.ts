@@ -28,6 +28,7 @@ async function bootstrap() {
     next();
   });
   app.use((_: Request, response: Response, next: NextFunction) => {
+    response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('X-Frame-Options', 'DENY');
     response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');

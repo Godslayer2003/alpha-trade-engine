@@ -31,7 +31,7 @@ export class AssistantController {
       throw new ForbiddenException('AI Guide chat access requires a one-time $5 payment.');
     }
     await this.quota.consume('chat-user', user.userId, 50, 86_400_000);
-    await this.quota.consume('chat-global', 'application', 500, 86_400_000);
+    await this.quota.consume('ai-global', 'application', 500, 86_400_000);
     return this.assistantService.chat(dto.messages, dto.model, dto.context);
   }
 

@@ -122,6 +122,7 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
         className="flex flex-wrap items-center gap-2"
       >
         <select
+          aria-label="News market"
           value={category}
           onChange={(e) => setCategory(e.target.value as MarketCategory)}
           className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -133,6 +134,7 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
           ))}
         </select>
         <input
+          aria-label="News search symbol"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Look up any stock, index, crypto, or commodity…"

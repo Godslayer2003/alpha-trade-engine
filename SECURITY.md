@@ -2,7 +2,7 @@
 
 ## Reporting vulnerabilities
 
-Report security issues privately through the repository's GitHub security advisory workflow when available. Do not publish passwords, API keys, personal data or exploit details in public issues. Include affected routes, reproduction steps, impact and a suggested fix.
+Report security issues through [GitHub private vulnerability reporting](https://github.com/Godslayer2003/alpha-trade-engine/security/advisories/new). Do not publish passwords, API keys, personal data or exploit details in public issues. Include affected routes, reproduction steps, impact and a suggested fix.
 
 ## Required engineering controls
 

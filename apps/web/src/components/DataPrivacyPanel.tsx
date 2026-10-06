@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 
-export function DataPrivacyPanel() {
+export function DataPrivacyPanel({ onPictureRemoved }: { onPictureRemoved: () => void }) {
   const { user } = useAuth();
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -27,7 +27,7 @@ export function DataPrivacyPanel() {
         const link = document.createElement('a'); link.href = url; link.download = 'alpha-trade-data.json'; link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         setMessage('Your account data has been downloaded. Keep this file private.');
-      } else { setMessage('Profile picture removed. Reload this page to refresh the preview.'); }
+      } else { onPictureRemoved(); setMessage('Profile picture removed.'); }
       setPassword(''); setOtp('');
     } catch (err) { setError((err as Error).message); }
     finally { setBusy(false); }

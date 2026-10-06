@@ -34,7 +34,7 @@ export class AccountManagementService {
     const confirmed = await this.confirm(userId, dto);
     await this.prisma.$transaction(async tx => {
       const current = await tx.user.findUnique({ where: { id: userId } });
-      if (!current || current.passwordHash !== confirmed.passwordHash || current.mfaEnabled !== confirmed.mfaEnabled) {
+      if (!current || current.passwordHash !== confirmed.passwordHash || current.mfaEnabled !== confirmed.mfaEnabled || current.mfaSecret !== confirmed.mfaSecret) {
         throw new UnauthorizedException('Account security changed. Try again.');
       }
       // Foreign keys cascade to profiles, uploads, sessions, tokens, portfolios and owned feedback.

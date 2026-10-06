@@ -47,12 +47,14 @@ export function InsightReportPanel({ symbol, assetClass }: InsightReportPanelPro
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <input
+          aria-label="Asset analysis symbol"
           value={querySymbol}
           onChange={(e) => setQuerySymbol(e.target.value)}
           placeholder="Symbol (e.g. BTCUSDT, AAPL)"
           className="flex-1 min-w-[8rem] rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <select
+          aria-label="Analysis period"
           value={months}
           onChange={(e) => setMonths(Number(e.target.value))}
           className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"

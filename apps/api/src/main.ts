@@ -3,7 +3,9 @@ import 'reflect-metadata';
 import { json } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import { NestFactory } from '@nestjs/core';
+import { ForbiddenException } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { isAllowedSessionWrite } from './security/request-origin';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +18,12 @@ async function bootstrap() {
     throw new Error('WEB_ORIGIN must list at least one trusted browser origin in production.');
   }
   app.enableCors(origins.length > 0 ? { origin: origins } : undefined);
+  app.use((request: Request, _: Response, next: NextFunction) => {
+    if (!isAllowedSessionWrite(request, origins)) {
+      return next(new ForbiddenException('Request origin is not allowed.'));
+    }
+    next();
+  });
   app.use((_: Request, response: Response, next: NextFunction) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('X-Frame-Options', 'DENY');

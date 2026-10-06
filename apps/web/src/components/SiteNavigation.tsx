@@ -1,15 +1,22 @@
 'use client';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { AuthPanel } from './AuthPanel';
 
-const links = [['/dashboard', 'Dashboard'], ['/components', 'Tools'], ['/settings', 'Settings'], ['/privacy', 'Privacy']] as const;
+const links = [['/dashboard', 'Markets'], ['/components', 'Tools'], ['/workflows', 'Workflows'], ['/onboarding', 'Risk profile'], ['/settings', 'Settings']] as const;
 export function SiteNavigation() {
-  return <header className="border-b border-slate-200 dark:border-slate-800">
-    <nav aria-label="Main navigation" className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-      <Link href="/dashboard" className="font-semibold tracking-tight">Alpha-Trade Engine</Link>
-      <div className="hidden gap-5 text-sm sm:flex">{links.map(([href, label]) => <Link key={href} href={href} className="hover:underline">{label}</Link>)}</div>
-      <details className="relative sm:hidden"><summary className="cursor-pointer rounded-lg border px-3 py-2 text-sm">Menu</summary>
-        <div className="absolute right-0 z-50 mt-2 min-w-40 rounded-lg border border-slate-300 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-950">{links.map(([href, label]) => <Link key={href} href={href} onClick={event => event.currentTarget.closest('details')?.removeAttribute('open')} className="block rounded px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">{label}</Link>)}</div>
-      </details>
+  const pathname = usePathname();
+  const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  return <header className="site-header">
+    <nav aria-label="Main navigation" className="site-navigation">
+      <Link href="/dashboard" aria-label="Alpha Trade home" className="site-brand">Alpha Trade<span className="hidden sm:inline"> / Engine</span></Link>
+      <div className="hidden gap-5 text-sm lg:flex">{links.map(([href, label]) => <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined} className="site-link">{label}</Link>)}</div>
+      <div className="flex min-w-0 items-center gap-2">
+        <AuthPanel />
+        <details className="relative lg:hidden"><summary className="menu-trigger">Menu</summary>
+          <div className="menu-links">{links.map(([href, label]) => <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined} onClick={event => event.currentTarget.closest('details')?.removeAttribute('open')} className="site-link block px-3 py-2">{label}</Link>)}</div>
+        </details>
+      </div>
     </nav>
   </header>;
 }

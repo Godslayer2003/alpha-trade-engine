@@ -1,6 +1,6 @@
 # Alpha-Trade Engine
 
-A paper-trading terminal with an AI guide layered on top: live market data, pattern/signal
+A paper-trading terminal with an AI guide layered on top: market data, pattern/signal
 analysis, a practice portfolio, and direct Gemini or OpenAI chat assistance.
 
 **This app is simulated and advisory only.** There is no live order execution and no broker OAuth
@@ -12,10 +12,11 @@ trades or moves money. Nothing here is financial advice.
 ```bash
 npm install
 
-# Brings up Postgres, Redis, and the Python ai-engine (see docker-compose.yml)
-docker compose up -d
+# Fill in .env before starting the database containers
+cp .env.example .env
+docker compose up -d postgres redis
 
-cp .env.example .env   # fill in the values you have — see "Environment variables" below
+# See Environment variables below for required secrets
 npm run prisma:generate
 npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
 
@@ -24,7 +25,7 @@ npm run dev   # runs apps/web (Next.js), apps/api (NestJS), and ai-engine concur
 
 - Web: http://localhost:3000
 - API: http://localhost:3001
-- AI engine (Python/FastAPI): http://localhost:8000
+- AI engine (compiled strict TypeScript): http://localhost:8000
 
 ## Environment variables
 
@@ -38,7 +39,7 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 | `REDIS_URL` | — | Provisioned via `docker-compose.yml`; not currently consumed by any code |
 | `AI_ENGINE_URL` | `apps/api` → `packages/ai-engine` calls | Defaults to `http://localhost:8000` |
 | `JWT_SECRET` | Auth | Any random string in dev |
-| `ADMIN_EMAILS` | Assistant config editing / feedback log | Comma-separated emails; blocked for everyone if unset |
+| Administrator access | Assistant config editing / feedback log | Requires the database ADMIN role and verified MFA; an email allowlist does not grant access |
 | `AI_ENGINE_SHARED_SECRET` | Locks down the ai-engine's public URL | A strong random string that must match on both `apps/api` and `packages/ai-engine` |
 | `WEB_ORIGIN` | CORS and payment redirects | Comma-separated trusted web origins; required in production |
 | `GEMINI_API_KEY` | Default AI Guide chat, AI Insight Reports / Market News Explainer / Company Reports | [Google AI Studio](https://aistudio.google.com/apikey) |
@@ -50,6 +51,8 @@ All variables live in `.env` at the repo root (see `.env.example`), shared by `a
 | `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | "Connect Telegram" deep link | Your bot's `@username` |
 
 ## Architecture
+
+Read `ARCHITECTURE.md` for the maintained service boundaries, security invariants and release gates. The analysis service is compiled TypeScript with no runtime package dependencies. Run `npm run test --workspace=packages/ai-engine` to verify legacy calculation parity and HTTP security behavior.
 
 ```mermaid
 flowchart LR

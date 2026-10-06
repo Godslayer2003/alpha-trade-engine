@@ -1,16 +1,13 @@
-# Built with the monorepo root as the Render Docker context. This service has
-# no workspace deps, but keeping the
-# context consistent with apps/api/Dockerfile simplifies the deploy story.
-FROM python:3.12-slim
+FROM node:24-slim AS build
+WORKDIR /repo
+COPY . .
+RUN npm ci --ignore-scripts
+RUN npm run build --workspace=packages/ai-engine
 
+FROM node:24-slim
+ENV NODE_ENV=production
 WORKDIR /app
-
-COPY packages/ai-engine/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY packages/ai-engine/app ./app
-
+COPY --from=build /repo/packages/ai-engine/dist/server.js /repo/packages/ai-engine/dist/analysis.js /repo/packages/ai-engine/dist/market.js ./dist/
+USER node
 EXPOSE 8000
-
-# Render injects $PORT and expects the app to listen on it.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["node", "dist/server.js"]

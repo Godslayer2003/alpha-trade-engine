@@ -29,21 +29,16 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - run: npm ci
       - run: npm run prisma:generate
       - run: npm run build
+      - run: npm run test:web-quality
       - run: npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
       - run: node scripts/security-integration.cjs
       - run: npm run test --workspace=apps/api -- --runInBand
       - run: npm run test:e2e --workspace=apps/api -- --runInBand
       - run: npm audit --omit=dev --audit-level=moderate
-      - run: pip install -r packages/ai-engine/requirements.txt pip-audit
-      - run: python -m unittest discover -s tests -v
-        working-directory: packages/ai-engine
-      - run: pip-audit -r packages/ai-engine/requirements.txt
+      - run: npm run test --workspace=packages/ai-engine
   secrets:
     runs-on: ubuntu-latest
     steps:

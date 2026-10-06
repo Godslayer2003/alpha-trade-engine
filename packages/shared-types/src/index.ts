@@ -41,7 +41,7 @@ export enum AssetClass {
   COMMODITY = 'COMMODITY',
 }
 
-// Mirrors packages/ai-engine/app/data_sources/common.py's SUPPORTED_TIMEFRAMES
+// Mirrors packages/ai-engine/src/market.ts's timeframes
 // exactly — the ai-engine is the source of truth for what's fetchable; this
 // enum exists so the frontend has a canonical, typed list + labels to render.
 export enum Timeframe {

@@ -12,7 +12,6 @@ export function DisclaimerBanner() {
   // than flash the banner then hide it, or default-hide it for a first-time
   // visitor who's never actually dismissed it.
   const [dismissed, setDismissed] = useState<boolean | null>(null);
-  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     setDismissed(window.localStorage.getItem(STORAGE_KEY) === 'true');
@@ -31,34 +30,12 @@ export function DisclaimerBanner() {
 
   return (
     <div className="mb-8 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 relative">
-      {confirming ? (
-        <div className="flex flex-col items-center gap-2 py-1">
-          <p className="text-sm font-semibold text-rose-700 dark:text-rose-400 text-center">
-            Are you sure you have read the Disclaimer &amp; Terms of Use?
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={confirmDismiss}
-              className="text-xs px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white"
-            >
-              Yes
-            </button>
-            <button
-              onClick={() => setConfirming(false)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-            >
-              No
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
           <button
-            onClick={() => setConfirming(true)}
+            onClick={confirmDismiss}
             aria-label="Dismiss disclaimer"
             className="absolute top-2 right-2 text-xs px-2 py-1 rounded text-rose-700 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-200 hover:bg-rose-200 dark:hover:bg-rose-900"
           >
-            ✕ Dismiss
+            Dismiss
           </button>
           <p className="text-sm font-medium text-slate-700 dark:text-slate-300 pr-16">
             Research and simulated trading · Not financial advice
@@ -69,8 +46,6 @@ export function DisclaimerBanner() {
               Disclaimer &amp; Terms
             </Link>.
           </p>
-        </>
-      )}
     </div>
   );
 }

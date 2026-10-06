@@ -73,6 +73,7 @@ export function CompanyReportsWidget() {
         className="flex items-center gap-2"
       >
         <input
+          aria-label="Company report symbol"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Look up any company's most recent report (e.g. AMZN)"

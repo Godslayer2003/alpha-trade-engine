@@ -8,6 +8,9 @@ import { SecurityQuotaService } from './security-quota.service';
 import { MfaService } from './mfa.service';
 import { AccountTokenService } from './account-token.service';
 import { EmailModule } from '../email/email.module';
+import { AccountManagementController } from './account-management.controller';
+import { AccountManagementService } from './account-management.service';
+import { RetentionService } from './retention.service';
 
 @Module({
   imports: [
@@ -18,8 +21,8 @@ import { EmailModule } from '../email/email.module';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, SecurityQuotaService, MfaService, AccountTokenService],
+  controllers: [AuthController, AccountManagementController],
+  providers: [AuthService, JwtStrategy, SecurityQuotaService, MfaService, AccountTokenService, AccountManagementService, RetentionService],
   exports: [JwtModule, SecurityQuotaService],
 })
 export class AuthModule {}

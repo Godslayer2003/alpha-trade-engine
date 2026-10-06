@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/lib/theme-context';
+import Link from 'next/link';
+import { SiteNavigation } from '@/components/SiteNavigation';
 
 export const metadata: Metadata = {
-  title: 'Alpha-Trade Engine',
-  description: 'Technical pattern recognition and risk-managed trade guidance.',
+  title: { default: 'Alpha-Trade Engine | Market research and paper trading', template: '%s | Alpha-Trade Engine' },
+  description: 'Explore market charts, educational technical analysis and simulated portfolios. Review risks before making any investment decision.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -24,7 +26,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark">
       <body className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50">
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <a href="#page-content" className="skip-link">Skip to content</a>
+            <SiteNavigation />
+            <div id="page-content" tabIndex={-1}>{children}</div>
+            <footer className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-6 text-sm dark:border-slate-800">
+              <span>© {new Date().getUTCFullYear()} Alpha-Trade Engine</span>
+              <nav aria-label="Legal information" className="flex gap-5"><Link href="/privacy" className="underline">Privacy</Link><Link href="/disclaimer" className="underline">Terms and risk disclosure</Link></nav>
+            </footer>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

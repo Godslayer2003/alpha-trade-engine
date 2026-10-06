@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { ConnectTelegramButton } from '@/components/ConnectTelegramButton';
 import { AccountSecurityPanel } from '@/components/AccountSecurityPanel';
+import { DataPrivacyPanel } from '@/components/DataPrivacyPanel';
 import {
   fetchProfile,
   updateProfile,
@@ -78,7 +79,7 @@ export default function SettingsPage() {
     refresh();
   }, [refresh]);
 
-  function handlePictureChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePictureChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setPictureError(null);
@@ -86,9 +87,23 @@ export default function SettingsPage() {
       setPictureError('Image is too large — please choose one under 10MB.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setPicturePreview(reader.result as string);
-    reader.readAsDataURL(file);
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPictureError('Choose a JPEG, PNG or WebP image.'); return;
+    }
+    try {
+      const image = await createImageBitmap(file);
+      try {
+        const scale = Math.min(1, 512 / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Image processing unavailable.');
+        context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        setPicturePreview(canvas.toDataURL('image/jpeg', 0.85));
+      } finally { image.close(); }
+    } catch { setPictureError('Could not read this image. Choose a different file.'); }
   }
 
   async function handleSaveProfile() {
@@ -191,6 +206,7 @@ export default function SettingsPage() {
         </div>
 
         <AccountSecurityPanel />
+        <DataPrivacyPanel onPictureRemoved={() => setPicturePreview(null)} />
         <section className={CARD}>
           <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">Appearance</h2>
           <div className="flex items-center justify-between">
@@ -219,7 +235,7 @@ export default function SettingsPage() {
                 </div>
               )}
               <div>
-                <input type="file" accept="image/*" onChange={handlePictureChange} className="text-xs text-slate-600 dark:text-slate-400" />
+                <input aria-label="Profile picture" type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePictureChange} className="text-xs text-slate-600 dark:text-slate-400" />
                 <p className="text-[11px] text-slate-500 mt-1">Max 10MB.</p>
                 {pictureError && <p className="text-xs text-rose-600 dark:text-rose-400">{pictureError}</p>}
               </div>

@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
       <DisclaimerBanner />
 
-      <nav aria-label="Dashboard workspace" className="my-6 flex gap-2 border-b border-slate-200 dark:border-slate-800">
+      <nav aria-label="Dashboard workspace" className="my-6 flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800">
         {(['research', 'practice', 'performance'] as const).map((view) => (
           <button key={view} type="button" aria-current={workspace === view ? 'page' : undefined}
             onClick={() => setWorkspace(view)}

@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -6,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
@@ -14,6 +16,7 @@ import { InvestmentStyle } from '@alpha-trade/shared-types';
 export class UpdateStrategyDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(80)
   @IsOptional()
   name?: string;
 
@@ -22,6 +25,9 @@ export class UpdateStrategyDto {
   style?: InvestmentStyle;
 
   @IsArray()
+  @ArrayMaxSize(50)
+  @MinLength(1, { each: true })
+  @MaxLength(64, { each: true })
   @IsString({ each: true })
   @IsOptional()
   preferredTickers?: string[];
@@ -33,6 +39,7 @@ export class UpdateStrategyDto {
   maxRiskPerTrade?: number;
 
   @IsString()
+  @MaxLength(2000)
   @IsOptional()
   notes?: string;
 

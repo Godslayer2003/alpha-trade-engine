@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEmail,
@@ -27,6 +28,7 @@ export class UpdateProfileDto {
   capitalBase?: number;
 
   @IsString()
+  @MaxLength(2000)
   @IsOptional()
   investmentGoal?: string;
 
@@ -37,14 +39,17 @@ export class UpdateProfileDto {
   timeHorizonYears?: number;
 
   @IsString()
+  @MaxLength(100)
   @IsOptional()
   experienceLevel?: string;
 
   @IsString()
+  @MaxLength(100)
   @IsOptional()
   firstName?: string;
 
   @IsString()
+  @MaxLength(100)
   @IsOptional()
   lastName?: string;
 
@@ -66,6 +71,7 @@ export class UpdateProfileDto {
   profilePictureUrl?: string;
 
   @IsEmail()
+  @MaxLength(254)
   @IsOptional()
   notificationEmail?: string;
 
@@ -83,6 +89,7 @@ export class UpdateProfileDto {
   dailyReportTimezone?: string;
 
   @IsArray()
+  @ArrayMaxSize(2)
   @IsIn([NotificationChannel.TELEGRAM, NotificationChannel.EMAIL], { each: true })
   @IsOptional()
   dailyReportChannels?: NotificationChannel[];

@@ -28,6 +28,6 @@ GitHub master is the production source for Vercel and the two Render services. U
 
 ## Verification boundaries
 
-CI builds the services, runs API unit/end-to-end tests and disposable PostgreSQL security integration, audits dependencies and scans for secrets. `npm run test:web-quality` checks route responses, page headings, metadata, shared navigation, links, favicon and the custom 404. Browser checks must additionally cover interaction, console errors and mobile overflow. Analysis-service migrations require calculation parity fixtures and HTTP authorization/input-validation regression tests.
+CI builds the services, runs API unit/end-to-end tests and disposable PostgreSQL security integration, audits dependencies and scans all fetched Git history for secrets with a pinned, checksum-verified Gitleaks binary. `npm run test:web-quality` checks route responses, page headings, metadata, shared navigation, links, favicon and the custom 404. Browser checks must additionally cover interaction, console errors and mobile overflow. Analysis-service migrations require calculation parity fixtures and HTTP authorization/input-validation regression tests.
 
 Use Ponytail to keep changes small, Context7 for current library documentation, Playwright CLI for browser checks and Strix for bounded security scanning when its model access and Docker sandbox are available. A tool being installed is not evidence that a scan ran. Record verification limits and unresolved findings honestly.

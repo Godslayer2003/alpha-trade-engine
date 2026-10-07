@@ -71,7 +71,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async changePassword(@CurrentUser() user: AuthenticatedUser, @Body() dto: ChangePasswordDto,
     @Res({ passthrough: true }) response: Response) {
-    await this.authService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+    await this.quota.consume('password-user', user.userId, 10, 900_000);
+    await this.authService.changePassword(user.userId, dto.currentPassword, dto.newPassword, dto.otp);
     response.clearCookie(SESSION_COOKIE, { path: '/' });
     return { ok: true };
   }

@@ -14,6 +14,9 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      # Supply a base64-encoded 32-byte key. Preserve the existing key on updates.
+      - key: MFA_ENCRYPTION_KEY
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL
@@ -26,7 +29,7 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
-      # AI Guide chatbot $5 paywall — chat stays unlocked for everyone if unset.
+      # AI Guide one-time payment. Production chat fails closed if unset.
       - key: STRIPE_SECRET_KEY
         sync: false
       # Set manually after the ai-engine service below gets its real URL —
@@ -37,8 +40,8 @@ services:
       # any random string, generated once and pasted into both services.
       - key: AI_ENGINE_SHARED_SECRET
         sync: false
-      # Comma-separated list of emails allowed to edit the AI Guide's
-      # config and view the feedback log (e.g. "you@example.com").
+      # Legacy reserved registration addresses; this does not grant admin access.
+      # Admin access requires an explicit database role and verified MFA.
       - key: ADMIN_EMAILS
         sync: false
       # The live web app's origin (e.g. https://alpha-trade-engine-web.vercel.app).

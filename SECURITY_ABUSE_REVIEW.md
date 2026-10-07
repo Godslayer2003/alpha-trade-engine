@@ -10,6 +10,7 @@ Confirmed gap: an authenticated MFA-enabled account could change its password us
 
 - Gitleaks 8.30.1 scanned all fetched refs/history (88 commits at the initial scan), with full redaction: no matches. Only `.env.example` is tracked. This does not detect every possible secret or establish historical key validity.
 - CI now downloads a pinned Gitleaks binary, verifies its release checksum and scans all fetched Git history on every PR/master build. A failing scan remains a required merge gate.
+- The Render Blueprint now declares the required MFA encryption key as an operator-supplied secret. Existing encryption keys must be preserved; this change does not generate or rotate them. Stale admin/payment comments were corrected.
 - HTTP regression tests use actual Nest routes, validation and JWT/admin guards with synthetic storage: forged signatures, foreign sessions, cross-account writes and claimed admin privileges are denied. Login identity normalization and HTTP throttling are checked.
 - Disposable PostgreSQL integration checks concurrent single-use recovery codes, shared quota enforcement across service instances, reset-link invalidation, session revocation, strategy ownership and unrelated-account preservation.
 - API build and 28 unit tests passed. Web production build, public-route quality checks and production dependency audit passed (zero reported vulnerabilities).

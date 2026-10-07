@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/current-user.decorator';
 import { PaymentsService } from './payments.service';
+import { VerifySessionDto } from './dto/verify-session.dto';
 
 @Controller('api/v1/payments')
 @UseGuards(JwtAuthGuard)
@@ -20,8 +21,8 @@ export class PaymentsController {
   }
 
   @Get('verify')
-  verify(@CurrentUser() user: AuthenticatedUser, @Query('session_id') sessionId: string) {
-    return this.paymentsService.verifySession(user.userId, sessionId);
+  verify(@CurrentUser() user: AuthenticatedUser, @Query() query: VerifySessionDto) {
+    return this.paymentsService.verifySession(user.userId, query.session_id);
   }
 
   // Site-operator-only view, same gate as the assistant config/feedback routes.

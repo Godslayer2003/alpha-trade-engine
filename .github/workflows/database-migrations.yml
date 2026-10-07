@@ -1,0 +1,38 @@
+name: Authorized database migrations
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: production-database-migrations
+  cancel-in-progress: false
+jobs:
+  migrate:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    # Configure environment protection and its secret before enabling this job.
+    environment: production-database-migrations
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --silent
+      - name: Apply committed migrations
+        env:
+          DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          RUNTIME_DATABASE_ROLE: ${{ vars.RUNTIME_DATABASE_ROLE }}
+        run: |
+          test -n "$DATABASE_URL" && test -n "$RUNTIME_DATABASE_ROLE"
+          ./node_modules/.bin/prisma migrate deploy --schema packages/database/prisma/schema.prisma
+      - name: Refresh restricted runtime grants
+        env:
+          DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          RUNTIME_DATABASE_ROLE: ${{ vars.RUNTIME_DATABASE_ROLE }}
+        run: |
+          test -n "$RUNTIME_DATABASE_ROLE"
+          # Use the environment, never a connection URL in process arguments.
+          export PGDATABASE="$DATABASE_URL"
+          unset DATABASE_URL
+          psql --no-psqlrc --set=ON_ERROR_STOP=1 --set=runtime_role="$RUNTIME_DATABASE_ROLE" --file=packages/database/runtime-grants.sql

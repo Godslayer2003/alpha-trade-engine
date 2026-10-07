@@ -11,6 +11,7 @@ const { AccountTokenService } = require('../apps/api/dist/auth/account-token.ser
 const { SecurityQuotaService } = require('../apps/api/dist/auth/security-quota.service');
 const { AccountManagementService } = require('../apps/api/dist/auth/account-management.service');
 const { RetentionService } = require('../apps/api/dist/auth/retention.service');
+const { StrategyService } = require('../apps/api/dist/strategy/strategy.service');
 
 async function main() {
   const url = new URL(process.env.DATABASE_URL || '');
@@ -47,13 +48,16 @@ async function main() {
     const securedPayload = jwt.verify(secured.accessToken);
     assert.equal((await strategy.validate(securedPayload)).mfaVerified, true);
     await assert.rejects(auth.login({ email, password, otp: enrolled.recoveryCodes[0] }));
+    const simultaneousRecovery = await Promise.allSettled(Array.from({ length: 5 }, () => auth.login({ email, password, otp: enrolled.recoveryCodes[5] })));
+    assert.equal(simultaneousRecovery.filter(result => result.status === 'fulfilled').length, 1);
     const stored = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
     assert.notEqual(stored.mfaSecret, setup.secret);
     assert(!stored.mfaRecoveryHashes.includes(enrolled.recoveryCodes[0]));
 
     const quota = new SecurityQuotaService(prisma);
     const scope = `integration-${userId}`;
-    const attempts = await Promise.allSettled(Array.from({ length: 5 }, () => quota.consume(scope, userId, 2, 60000)));
+    const secondQuotaInstance = new SecurityQuotaService(prisma);
+    const attempts = await Promise.allSettled(Array.from({ length: 5 }, (_, index) => (index % 2 ? quota : secondQuotaInstance).consume(scope, userId, 2, 60000)));
     assert.equal(attempts.filter(result => result.status === 'fulfilled').length, 2);
 
     process.env.EMAIL_FROM = 'test@example.invalid';
@@ -61,6 +65,13 @@ async function main() {
     process.env.WEB_ORIGIN = 'http://localhost:3010';
     let html = '';
     const tokens = new AccountTokenService(prisma, { sendAccountEmail: async (_to, _subject, content) => { html = content; } });
+    await tokens.request(email, 'reset');
+    const obsoleteReset = html.match(/#reset=([a-f0-9]{64})/)[1];
+    await assert.rejects(auth.changePassword(userId, password, password));
+    await assert.rejects(auth.changePassword(userId, password, password, 'invalid-code'));
+    await auth.changePassword(userId, password, password, enrolled.recoveryCodes[4]);
+    await assert.rejects(strategy.validate(securedPayload));
+    await assert.rejects(tokens.consume(obsoleteReset, 'reset', password));
     await tokens.request(email, 'verify');
     const verification = html.match(/#verify=([a-f0-9]{64})/)[1];
     await tokens.consume(verification, 'verify');
@@ -79,6 +90,14 @@ async function main() {
     const accounts = new AccountManagementService(prisma, mfa);
     const unrelated = await auth.register({ email: `other-${email}`, password, acceptedTerms: true });
     unrelatedId = unrelated.user.id;
+    const strategies = new StrategyService(prisma);
+    const ownedStrategy = await strategies.create(userId, { name: 'Isolation fixture', style: 'SWING_TRADING', preferredTickers: ['QQQ'] });
+    await assert.rejects(strategies.update(unrelatedId, ownedStrategy.id, { name: 'Unwanted overwrite' }));
+    await assert.rejects(strategies.remove(unrelatedId, ownedStrategy.id));
+    assert.equal((await strategies.list(unrelatedId)).length, 0);
+    assert.equal((await prisma.userStrategy.findUniqueOrThrow({ where: { id: ownedStrategy.id } })).name, 'Isolation fixture');
+    await auth.revokeSession(jwt.verify(unrelated.accessToken).sid, userId);
+    assert.equal((await strategy.validate(jwt.verify(unrelated.accessToken))).userId, unrelatedId);
     await assert.rejects(accounts.exportData(userId, { password: 'incorrect' }));
     await assert.rejects(accounts.deleteAccount(userId, { password: nextPassword }));
     await prisma.userProfile.upsert({ where: { userId }, create: { userId, profilePictureUrl: 'data:image/png;base64,fixture' }, update: { profilePictureUrl: 'data:image/png;base64,fixture' } });

@@ -11,6 +11,7 @@ Report security issues through [GitHub private vulnerability reporting](https://
 - Require database-backed authentication and object ownership for private records. Administrative routes require the ADMIN role and verified MFA.
 - Verify webhook signatures and authorization before updating payment access. Apply persistent quotas to costly or sensitive actions.
 - Encrypt authenticator secrets; hash passwords and recovery tokens. Revoke sessions after security-sensitive changes.
+- Require a fresh authenticator or recovery code for password changes when MFA is enabled. Invalidate outstanding reset links and reject stale reauthentication if account security changes concurrently.
 - Keep cookies HttpOnly, secure in production and protected against cross-origin writes. Private API responses must not be cached.
 - Use explicit data export allowlists. Never export password hashes, MFA secrets, session tokens or broker credentials.
 - Delete account-owned records through database foreign keys. Test deletion and isolation using disposable fixtures, never real customer accounts.

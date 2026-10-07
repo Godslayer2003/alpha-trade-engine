@@ -88,7 +88,7 @@ export class AuthService {
     });
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(userId: string, currentPassword: string, newPassword: string, otp?: string): Promise<void> {
     if (Buffer.byteLength(newPassword, 'utf8') > 72) {
       throw new BadRequestException('Password must be no more than 72 UTF-8 bytes.');
     }
@@ -96,11 +96,20 @@ export class AuthService {
     if (!user || !await bcrypt.compare(currentPassword, user.passwordHash)) {
       throw new UnauthorizedException('Current password is incorrect.');
     }
+    if (user.mfaEnabled) {
+      if (!user.mfaSecret || !otp) throw new UnauthorizedException('Enter an authenticator or recovery code.');
+      await this.mfa.verify(userId, user.mfaSecret, otp);
+    }
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
-      this.prisma.authSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
-    ]);
+    await this.prisma.$transaction(async tx => {
+      const current = await tx.user.findUnique({ where: { id: userId } });
+      if (!current || current.passwordHash !== user.passwordHash || current.mfaEnabled !== user.mfaEnabled || current.mfaSecret !== user.mfaSecret) {
+        throw new UnauthorizedException('Account security changed. Try again.');
+      }
+      await tx.user.update({ where: { id: userId }, data: { passwordHash } });
+      await tx.authSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
+      await tx.accountToken.updateMany({ where: { userId, purpose: 'reset', consumedAt: null }, data: { consumedAt: new Date() } });
+    }, { isolationLevel: 'Serializable' });
   }
 
   private async buildAuthResult(userId: string, email: string, passwordHash: string, mfaVerified: boolean): Promise<AuthResult> {

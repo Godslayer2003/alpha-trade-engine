@@ -22,6 +22,8 @@ RUN npx prisma generate --schema packages/database/prisma/schema.prisma
 
 RUN npm run build --workspace=apps/api
 
+ENV NODE_ENV=production
+USER node
 EXPOSE 3001
 # Apply any pending migrations against the real runtime DATABASE_URL before
 # starting the server, so new deploys pick up schema changes automatically.

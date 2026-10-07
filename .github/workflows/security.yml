@@ -39,6 +39,15 @@ jobs:
       - run: npm run test:e2e --workspace=apps/api -- --runInBand
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run test --workspace=packages/ai-engine
+      - name: Build API production container
+        run: docker build --tag alpha-api-runtime-test --file apps/api/Dockerfile .
+      - name: Check API runtime privileges and production cookies
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint sh alpha-api-runtime-test -c 'test "$(id -u)" -ne 0 && test "$NODE_ENV" = production && test ! -w /repo/apps/api/dist/main.js'
+          trap 'docker rm --force alpha-api-runtime-test >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name alpha-api-runtime-test --network host --env DATABASE_URL --env PORT=3007 --env JWT_SECRET=disposable-runtime-test-signing-key --env MFA_ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc= --env WEB_ORIGIN=http://localhost:3010 --env AI_ENGINE_SHARED_SECRET=disposable-runtime-engine-key alpha-api-runtime-test
+          node scripts/api-runtime-check.cjs
   secrets:
     runs-on: ubuntu-latest
     steps:

@@ -10,6 +10,8 @@ services:
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET

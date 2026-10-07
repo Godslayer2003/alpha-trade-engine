@@ -4,6 +4,7 @@
 
 - `apps/web`: Next.js and strict TypeScript. Public UI on Vercel. Browser code contains no provider credentials and makes authenticated requests through the configured API route proxy. UI visibility never grants authorization.
 - `apps/api`: NestJS and strict TypeScript on Render. Owns PostgreSQL access through Prisma, authentication, authorization, account data, paper trading, payments and AI provider requests. Validate all requests here, including ownership of records.
+- Both service containers run as the unprivileged `node` user. The API image explicitly enables production mode after compilation, so secure cookies and required production secrets cannot depend on an omitted deployment variable.
 - `packages/ai-engine`: strict TypeScript internal market analysis service on Render, compiled before deployment and run with Node.js native HTTP/fetch APIs. Supplies candles, delayed quotes, rules-based signals and text chunks. It has no customer database access. Protect its non-health endpoints with `AI_ENGINE_SHARED_SECRET`; fetch market data only from fixed Yahoo Finance and Binance endpoints.
 - `packages/shared-types`: cross-service TypeScript contracts. Types supplement runtime validation; they do not validate untrusted HTTP responses.
 - `packages/database`: Prisma schema and migrations. Apply migrations through the API deployment. Account-owned data uses foreign-key deletion rules.

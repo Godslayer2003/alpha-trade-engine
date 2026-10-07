@@ -20,6 +20,8 @@ Confirmed gap: an authenticated MFA-enabled account could change its password us
 
 ## Remaining limits
 
+Follow-up container hardening: the API image explicitly sets production mode and runs as the unprivileged `node` user. Local disposable-container checks verified migrations/startup, non-root execution, read-only application code, secure HttpOnly cookies, no bearer token in registration responses, anonymous admin denial and fail-closed AI chat without payment configuration. CI now builds and checks the actual API image before merging. The Render Blueprint declares production mode explicitly as well.
+
 Production database privileges and provider billing caps/alerts have not been independently verified in their provider accounts. Existing AI request quotas limit request counts, not total monetary spending. No provider spending cap or notification setting was changed. Private uploads and credentials were not sent to a new external scanning service. Broader security testing remains necessary; these controls do not make the app hack-proof.
 
 Guidance: [OWASP MFA](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html), [OWASP authentication](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html), [Gitleaks](https://github.com/gitleaks/gitleaks).

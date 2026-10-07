@@ -72,6 +72,9 @@ export class PaymentsService {
       throw new ForbiddenException('This checkout session does not belong to you.');
     }
     if (session.payment_status === 'paid' && typeof session.payment_intent === 'string') {
+      if (session.mode !== 'payment' || session.currency !== 'usd' || session.amount_total !== CHAT_ACCESS_PRICE_USD_CENTS) {
+        throw new ForbiddenException('This checkout session does not grant AI Guide access.');
+      }
       await this.prisma.user.update({
         where: { id: userId },
         data: { chatAccessPaid: true, stripePaymentIntentId: session.payment_intent },

@@ -8,6 +8,7 @@ import { TelegramService } from '../src/telegram/telegram.service';
 import { AssistantService } from '../src/assistant/assistant.service';
 import { AuthService } from '../src/auth/auth.service';
 import { SecurityQuotaService } from '../src/auth/security-quota.service';
+import { PaymentsService } from '../src/payments/payments.service';
 
 describe('HTTP authorization boundaries', () => {
   let app: INestApplication;
@@ -16,6 +17,7 @@ describe('HTTP authorization boundaries', () => {
   const remove = jest.fn();
   const getConfig = jest.fn().mockResolvedValue({ systemPrompt: 'fixture' });
   const quota = { consume: jest.fn().mockResolvedValue(undefined) };
+  const verifyPayment = jest.fn().mockResolvedValue({ paid: false });
   const sessions: Record<string, object> = {};
   const token = (sub = 'user-a', sid = 'session-a', claims = {}) => jwt.sign({ sub, sid, ...claims });
 
@@ -36,11 +38,24 @@ describe('HTTP authorization boundaries', () => {
       .overrideProvider(SecurityQuotaService).useValue(quota)
       .compile();
     jwt = module.get(JwtService);
+    jest.spyOn(module.get(PaymentsService), 'verifySession').mockImplementation(verifyPayment);
     app = module.createNestApplication();
     await app.init();
   });
 
   afterAll(async () => { await app.close(); });
+
+  it('bounds checkout identifiers before provider access and supplies the authenticated owner', async () => {
+    verifyPayment.mockClear();
+    for (const session_id of [undefined, 'malformed', 'cs_test_' + 'a'.repeat(201), ['cs_test_a', 'cs_test_b']]) {
+      await request(app.getHttpServer()).get('/api/v1/payments/verify')
+        .set('Authorization', `Bearer ${token()}`).query(session_id === undefined ? {} : { session_id }).expect(400);
+    }
+    expect(verifyPayment).not.toHaveBeenCalled();
+    await request(app.getHttpServer()).get('/api/v1/payments/verify').query({ session_id: 'cs_test_fixture' })
+      .set('Authorization', `Bearer ${token()}`).expect(200);
+    expect(verifyPayment).toHaveBeenCalledWith('user-a', 'cs_test_fixture');
+  });
 
   it('accepts an owned session cookie and rejects anonymous or forged tokens', async () => {
     await request(app.getHttpServer()).get('/api/v1/auth/session').expect(401);

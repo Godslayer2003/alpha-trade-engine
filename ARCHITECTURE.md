@@ -9,6 +9,19 @@
 - `packages/shared-types`: cross-service TypeScript contracts. Types supplement runtime validation; they do not validate untrusted HTTP responses.
 - `packages/database`: Prisma schema and migrations. Apply migrations through the API deployment. Account-owned data uses foreign-key deletion rules.
 
+The database privilege transition is staged, not active: the API Dockerfile has
+separate `migration` and `runtime` targets, while its default `legacy` target
+preserves startup migrations. A manual master-only GitHub migration workflow is
+prepared for a protected environment that will hold the owner credential; the runtime
+target starts only the API with a restricted connection. No production role,
+secret or service setting has been changed by this preparation. See
+DATABASE_PRIVILEGES.md for activation, shared PUBLIC grant effects and rollback.
+That environment is configured with operator review and master-only deployment;
+it contains no credentials yet. Render supports a Docker Command override for
+starting the API without migrations during the restricted-role transition.
+Payment verification also requires the expected one-time USD 5 amount/currency
+and payment mode before granting access; checkout identifiers are bounded.
+
 ## Security invariants
 
 Read SECURITY.md in full before changing security-sensitive code. Database-backed sessions identify callers; private records require ownership. Administrative operations require the ADMIN role and verified MFA. Preserve encrypted MFA secrets, single-use recovery, expiring hashed tokens, session revocation, persistent quotas, origin checks and non-cacheable private responses. Payment access is confirmed by retrieving the caller's Stripe checkout session on the server; any future webhook must verify its signature.

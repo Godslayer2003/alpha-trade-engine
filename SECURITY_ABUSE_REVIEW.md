@@ -29,8 +29,9 @@ were verified. Monetary caps/alerts are not configured. Existing AI request
 quotas limit request counts, not total monetary spending. No paid billing was
 enabled. Private uploads and credentials were not sent to a new external scanning
 service. The latest Strix report remains incomplete; targeted manual review
-found and fixed Telegram's shared AI quota gap. See REEL_FOLLOWUP.md for the
-review scope and remaining development dependency advisories. These checks
+found and fixed Telegram's shared AI quota gap. The later PR #16 full audit
+reported zero findings. See LAUNCH_READINESS.md for the current dated release
+record and reconciliation of the stopped scanner's follow-ups. These checks
 do not make the app hack-proof.
 
 Guidance: [OWASP MFA](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html), [OWASP authentication](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html), [Gitleaks](https://github.com/gitleaks/gitleaks).

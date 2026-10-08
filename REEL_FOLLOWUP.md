@@ -1,6 +1,6 @@
 # Reel security follow-up
 
-Current status is recorded in the final 8 October activation section below.
+Current release evidence is recorded in LAUNCH_READINESS.md.
 Earlier sections retain historical observations and preparation limits.
 
 ## Verified provider state
@@ -145,9 +145,14 @@ association are required before either can be verified or changed.
   The confirmed Telegram quota gap was fixed with six regressions in PR #13.
   Required CI passed 41 API unit tests, ten HTTP tests, database privilege and
   account integration, container checks, web quality and secret scanning.
-- The remaining full-tree audit findings are five high package findings in
+- At that activation, the remaining full-tree audit findings were five high package findings in
   the unpatched development-only braces chain; production audit reports zero.
   Provider associations and free-tier billing state are verified, but monetary
   caps/alerts are not configured. No paid billing was enabled.
 - Strix coverage remains explicitly incomplete. The targeted review and passing
   checks do not establish a whole-system penetration-test result.
+
+The subsequent PR #16 release removed that development dependency chain;
+its full npm audit reported zero findings. See LAUNCH_READINESS.md for the
+later tests and deployment evidence rather than treating these activation
+observations as the latest state.

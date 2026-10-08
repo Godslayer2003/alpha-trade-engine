@@ -4,6 +4,10 @@ Reviewed 8 October 2026. The operator confirmed British Columbia, Canada.
 This is an implementation review and an operator readiness record, not a legal
 opinion, compliance certification or completed penetration test.
 
+Engineering release evidence and outstanding launch requirements are tracked
+in LAUNCH_READINESS.md. Its dated evidence does not replace the external
+assessments below.
+
 ## Evidence and changes
 
 Both saved full-audio transcripts and all twelve contact sheets of one-second

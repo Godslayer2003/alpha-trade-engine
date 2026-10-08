@@ -17,8 +17,9 @@ target starts only the API with a restricted connection. On 8 October, the
 authorized production role `alpha_runtime_ate` and application grants were
 created and verified, with a free Neon recovery snapshot retained. The role has
 an independently generated password; the API uses its restricted connection.
-Render deployment `dep-db3f5h32blpc73bsbsng` is live at
-`aafff29c8752d581957994702043785c8c47d9b2`. Disposable production checks passed
+The initial restricted-runtime release was Render deployment
+`dep-db3f5h32blpc73bsbsng` at `aafff29c8752d581957994702043785c8c47d9b2`.
+Disposable production checks passed
 for registration, sessions, MFA, ownership isolation, safe export, revocation
 and deletion, with restricted database identity and atomic quota writes verified.
 The existing owner credential is now in the protected GitHub migration job;
@@ -92,6 +93,10 @@ deployment secrets and keep a rollback commit. Verify the public production
 alias and both service deployments against the merged commit.
 
 ## Verification boundaries
+
+See LAUNCH_READINESS.md for the verified 8 October release, reconciled scanner
+coverage and evidence still required before enabling commerce. Release entries
+are dated observations, not a claim that provider/account state cannot change.
 
 CI builds the services, runs API unit/end-to-end tests and disposable PostgreSQL security integration, audits dependencies and scans all fetched Git history for secrets with a pinned, checksum-verified Gitleaks binary. `npm run test:web-quality` checks route responses, page headings, metadata, shared navigation, links, favicon and the custom 404. Browser checks must additionally cover interaction, console errors and mobile overflow. Analysis-service migrations require calculation parity fixtures and HTTP authorization/input-validation regression tests.
 

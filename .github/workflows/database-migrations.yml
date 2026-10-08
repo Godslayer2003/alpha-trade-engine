@@ -30,9 +30,4 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
           RUNTIME_DATABASE_ROLE: ${{ vars.RUNTIME_DATABASE_ROLE }}
-        run: |
-          test -n "$RUNTIME_DATABASE_ROLE"
-          # Use the environment, never a connection URL in process arguments.
-          export PGDATABASE="$DATABASE_URL"
-          unset DATABASE_URL
-          psql --no-psqlrc --set=ON_ERROR_STOP=1 --set=runtime_role="$RUNTIME_DATABASE_ROLE" --file=packages/database/runtime-grants.sql
+        run: node scripts/database-grants.cjs

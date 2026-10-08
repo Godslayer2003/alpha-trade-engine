@@ -9,14 +9,18 @@
 - `packages/shared-types`: cross-service TypeScript contracts. Types supplement runtime validation; they do not validate untrusted HTTP responses.
 - `packages/database`: Prisma schema and migrations. Apply migrations through the protected GitHub owner job before each manual API release. Account-owned data uses foreign-key deletion rules.
 
-The database credential transition remains pending: the API Dockerfile has
+The database credential transition is active: the API Dockerfile has
 separate `migration` and `runtime` targets, while its default `legacy` target
 preserves startup migrations. A manual master-only GitHub migration workflow is
-prepared for a protected environment that will hold the owner credential; the runtime
+configured for a protected environment holding the owner credential; the runtime
 target starts only the API with a restricted connection. On 8 October, the
 authorized production role `alpha_runtime_ate` and application grants were
 created and verified, with a free Neon recovery snapshot retained. The role has
-no password yet; the API still uses its existing owner connection.
+an independently generated password; the API uses its restricted connection.
+Render deployment `dep-db3f5h32blpc73bsbsng` is live at
+`aafff29c8752d581957994702043785c8c47d9b2`. Disposable production checks passed
+for registration, sessions, MFA, ownership isolation, safe export, revocation
+and deletion, with restricted database identity and atomic quota writes verified.
 The existing owner credential is now in the protected GitHub migration job;
 Render now has automatic API deployment disabled and a runtime-only Docker
 Command; the Blueprint preserves that contract. See

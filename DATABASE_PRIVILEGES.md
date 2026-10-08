@@ -3,7 +3,7 @@
 The default Docker target retains the legacy startup migration command for local
 compatibility. Render and the Blueprint now select the runtime-only Docker
 Command with automatic API deployments disabled. The owner migration job runs
-before each manual API release. Runtime credential replacement remains pending.
+before each manual API release. Runtime credential replacement is active.
 
 ## 8 October production preparation
 
@@ -16,13 +16,18 @@ used only the owner role. A free manual Neon snapshot was created at
 2026-10-08 00:49:53 UTC and shows no expiry. The previous PUBLIC database grant
 included CONNECT/TEMPORARY; public schema had USAGE and no PUBLIC table grants.
 
-The role has no password. GitHub's migration environment now has the existing
+The role now has an independently generated password. GitHub's migration environment has the existing
 owner connection secret, verified against Neon without displaying credentials.
-Render still uses the owner connection. Its runtime-only command and manual
+Render uses the restricted connection. Its runtime-only command and manual
 deployment contract are configured; the protected migration job passed at
-dcd3ff356480b8fb5cbfee5dc5d62e33328c374d. Do not replace the runtime connection
-until credential entry and authenticated disposable-account verification are
-ready. SQL-created
+aafff29c8752d581957994702043785c8c47d9b2. The manual API deployment
+`dep-db3f5h32blpc73bsbsng` became live at that commit on 8 October.
+Disposable production checks passed for registration, database-backed sessions,
+secure HttpOnly cookies, ownership isolation, MFA enrollment and recovery login,
+safe export, logout revocation and account deletion. The restricted login's
+database identity, denied privilege metadata and atomic quota writes were also
+verified. Test accounts and their owned records were removed. No customer data
+was inspected. SQL-created
 roles do not appear in the provider-managed Neon Roles list; do not create a
 second privileged provider role to work around that UI limitation.
 
@@ -58,8 +63,14 @@ After action-time operator confirmation, create an independent LOGIN with no
 SUPERUSER, CREATEDB, CREATEROLE, REPLICATION, BYPASSRLS, role memberships or object
 ownership. Create it through SQL, not Neon's Add role / CLI / API flow: provider
 managed roles receive privileged neon_superuser membership. The operator sets its
-password through a private password prompt, never in chat or saved SQL history.
-The agent must not enter or submit the new credential.
+password through a private password prompt or an authorized secure API flow,
+never in chat or saved SQL history. Browser credential entry requires operator
+handoff. The approved terminal/API activation generated a random password in
+memory, submitted it over TLS and authenticated the restricted login before
+updating Render. Neon requires a plaintext password submission over the encrypted
+connection rather than a precomputed SCRAM verifier. Credentials were not printed;
+the rollback export and runtime connection are sealed with Windows user DPAPI
+outside the repository.
 Apply `packages/database/runtime-grants.sql` as the same owner that runs migrations
 with psql's `runtime_role` variable. Use a secure connection mechanism, never a
 credential in a command argument or printed output. Stop on SQL errors.
@@ -84,7 +95,7 @@ production permissions without that inspection.
 1. Pass CI and review the exact master commit. Save the existing service settings,
    database grants and a database recovery point without exporting secrets.
 2. After action-time confirmation, create/verify `alpha_runtime_ate` through SQL and
-   operator credential entry, and enter the owner connection into the protected
+   private credential setup, and enter the owner connection into the protected
    migration environment.
    Keep the existing API connection in place during preparation.
 3. Run the protected migration job for that exact commit before API rollout; it
@@ -98,7 +109,7 @@ production permissions without that inspection.
    command override starts the API without the legacy startup migrations; the
    dedicated `runtime` target remains available for local/CI image checks.
    Replace API DATABASE_URL with the
-   restricted login through operator credential entry. Remove owner credentials
+   restricted login through an authorized private credential flow. Remove owner credentials
    from the long-running API environment. Keep the migration credential solely
    in the protected job environment. Update the Blueprint to this final contract
    only when production settings have been tested.
@@ -111,7 +122,7 @@ production permissions without that inspection.
 
 ## Local regression
 
-Current production metadata review found only the `public` application schema,
+The pre-transition production metadata review found only the `public` application schema,
 no publicly granted tables and no public security-definer functions. PUBLIC has
 schema USAGE and database CONNECT/TEMPORARY; the owner role also has REPLICATION,
 CREATEDB, CREATEROLE and BYPASSRLS. No customer rows or credentials were read.

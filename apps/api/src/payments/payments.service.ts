@@ -17,7 +17,7 @@ export class PaymentsService {
     return this.stripe;
   }
 
-  async getStatus(userId: string): Promise<{ paid: boolean; admin: boolean; checkoutAvailable: boolean }> {
+  async getStatus(userId: string): Promise<{ paid: boolean; admin: boolean; checkoutAvailable: boolean; seller?: { name: string; address: string } }> {
     // Local fixtures can use chat without Stripe. Production always uses
     // stored entitlements; a billing outage must not revoke existing access.
     if (!this.stripe) {
@@ -26,8 +26,11 @@ export class PaymentsService {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     const checkoutAvailable = !!this.stripe && (process.env.NODE_ENV !== 'production' ||
       (process.env.COMMERCE_ENABLED === 'true' && !!process.env.PUBLIC_SELLER_NAME?.trim() && !!process.env.PUBLIC_SELLER_ADDRESS?.trim()));
-    if (user.role === 'ADMIN') return { paid: true, admin: true, checkoutAvailable };
-    return { paid: user.chatAccessPaid, admin: false, checkoutAvailable };
+    const disclosure = checkoutAvailable && process.env.NODE_ENV === 'production' ? {
+      seller: { name: process.env.PUBLIC_SELLER_NAME!.trim(), address: process.env.PUBLIC_SELLER_ADDRESS!.trim() },
+    } : {};
+    if (user.role === 'ADMIN') return { paid: true, admin: true, checkoutAvailable, ...disclosure };
+    return { paid: user.chatAccessPaid, admin: false, checkoutAvailable, ...disclosure };
   }
 
   async createCheckoutSession(userId: string, email: string): Promise<{ url: string }> {

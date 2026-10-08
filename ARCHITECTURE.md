@@ -68,6 +68,11 @@ restricted process described in CANADA_LEGAL_SECURITY_REVIEW.md.
 
 ## Product structure
 
+When checkout is configured, authenticated payment status supplies the authorized
+public seller name/address for display beside the price and Terms before checkout.
+Payment returns refresh stored entitlement and checkout availability. Report
+eligibility errors link to the declaration, whose page loads the saved state.
+
 Password changes and recovery clear unfinished MFA enrollment while preserving
 enabled factors. Enrollment writes compare the password snapshot to reject
 concurrent password changes. Telegram command failures return fixed messages

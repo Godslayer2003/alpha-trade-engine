@@ -32,7 +32,7 @@ interface DisplayMessage extends ChatMessage {
 }
 
 export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatProps) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -47,6 +47,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   const [paid, setPaid] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkoutAvailable, setCheckoutAvailable] = useState(false);
+  const [seller, setSeller] = useState<{ name: string; address: string } | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [eligible, setEligible] = useState<boolean | null>(null);
@@ -56,32 +57,33 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
     let active = true;
     fetchAiEligibility(token).then(result => { if(active) setEligible(result.eligible); }).catch(() => { if(active) setEligible(false); });
     return () => { active = false; };
-  }, [token]);
+  }, [token, user?.id]);
 
   useEffect(() => {
+    let active = true;
+    setPaid(null); setIsAdmin(false); setCheckoutAvailable(false); setSeller(null);
     if (!token) return;
     const sessionId = new URLSearchParams(window.location.search).get('stripe_session_id');
-    if (sessionId) {
-      // Returning from Stripe Checkout — confirm the payment actually went
-      // through before unlocking, then drop the query param from the URL.
-      verifyCheckoutSession(token, sessionId)
-        .then((res) => setPaid(res.paid))
-        .catch(() => setPaid(false))
-        .finally(() => {
+    async function loadStatus() {
+      if (sessionId) {
+        try { await verifyCheckoutSession(token!, sessionId); } catch { /* Stored status below remains authoritative. */ }
+        if (active) {
           const url = new URL(window.location.href);
           url.searchParams.delete('stripe_session_id');
           window.history.replaceState({}, '', url.toString());
-        });
-      return;
+        }
+      }
+      try {
+        const result = await fetchPaymentStatus(token!);
+        if (active) {
+          setPaid(result.paid); setIsAdmin(result.admin);
+          setCheckoutAvailable(result.checkoutAvailable === true); setSeller(result.seller ?? null);
+        }
+      } catch { if (active) setPaid(false); }
     }
-    fetchPaymentStatus(token)
-      .then((res) => {
-        setPaid(res.paid);
-        setIsAdmin(res.admin);
-        setCheckoutAvailable(res.checkoutAvailable === true);
-      })
-      .catch(() => setPaid(false));
-  }, [token]);
+    void loadStatus();
+    return () => { active = false; };
+  }, [token, user?.id]);
 
   async function unlock() {
     if (!token || unlocking) return;
@@ -220,6 +222,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
           <p className="text-xs text-slate-600 dark:text-slate-400">
             Unlock the AI Guide chat with a one-time US$5 payment.
           </p>
+          {seller && <p className="text-xs break-words">Seller: {seller.name}<br />{seller.address}</p>}
           <button
             onClick={unlock}
             disabled={unlocking || !checkoutAvailable}

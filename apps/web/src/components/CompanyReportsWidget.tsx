@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { fetchReport, type AiReport } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -51,8 +52,8 @@ export function CompanyReportsWidget() {
       .then((result) => {
         if (!cancelled) setReport(result);
       })
-      .catch(() => {
-        if (!cancelled) setError(`Could not load ${symbol}'s report.`);
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : `Could not load ${symbol}'s report.`);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -104,7 +105,7 @@ export function CompanyReportsWidget() {
       </div>
 
       {loading && <p className="text-sm text-slate-500">Loading {symbol}'s 4-month report…</p>}
-      {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{error} {error.includes('/ai-access') && <Link href="/ai-access" className="underline">Confirm AI eligibility</Link>}</p>}
 
       {report && (
         <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-2">

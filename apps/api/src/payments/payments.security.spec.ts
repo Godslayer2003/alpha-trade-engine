@@ -88,6 +88,7 @@ describe('Checkout entitlement verification', () => {
       }
       expect(mockCreate).not.toHaveBeenCalled();
       process.env.COMMERCE_ENABLED = 'true'; process.env.PUBLIC_SELLER_NAME = 'Fixture seller'; process.env.PUBLIC_SELLER_ADDRESS = 'Fixture address';
+      await expect(production.getStatus('owner')).resolves.toMatchObject({ checkoutAvailable: true, seller: { name: 'Fixture seller', address: 'Fixture address' } });
       mockCreate.mockResolvedValue({ url: 'https://checkout.example.invalid/fixture' });
       await expect(production.createCheckoutSession('owner', 'fixture@example.invalid')).resolves.toEqual({ url: 'https://checkout.example.invalid/fixture' });
       expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ mode: 'payment', client_reference_id: 'owner' }));

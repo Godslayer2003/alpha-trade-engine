@@ -40,6 +40,8 @@ async (page) => {
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'AI payment notice overflow');await page.screenshot({path:'.security-scan/launch-mobile.png'});
   await page.goto('http://127.0.0.1:3010/settings/requests');await page.getByRole('alert').filter({hasText:'Admin access required'}).waitFor();check(await page.getByText(request.message,{exact:true}).count()===0,'Inbox exposed without authorization');
   operator=true;await page.reload();await page.getByText(request.message,{exact:true}).waitFor();check(await page.locator('article img').count()===0,'Contact text interpreted as HTML');
+  await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByText('Sign in to continue.',{exact:true}).waitFor();check(await page.getByText(request.message,{exact:true}).count()===0,'Inbox retained private requests after logout');
+  await page.reload();await page.getByText(request.message,{exact:true}).waitFor();
   await page.getByRole('button',{name:'Mark resolved',exact:true}).click();await page.getByText('No open requests.',{exact:true}).waitFor();
   check(errors.length===0,errors.join('\n'));return{layouts,contact:{failure:true,receipt:true},eligibility:{unchecked:true,confirmed:true},checkoutDisabled:true,inbox:{denied:true,escaped:true,resolved:true},pageErrors:errors,data:'Synthetic local responses only'};
 }

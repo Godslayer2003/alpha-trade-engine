@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { fetchContactRequests, resolveContactRequest, type ContactRequest } from '@/lib/api-client';
 export default function RequestsPage() {
+  const { user } = useAuth();
+  return <RequestsInbox key={user?.id ?? 'anonymous'} />;
+}
+function RequestsInbox() {
   const { token } = useAuth();
   const [requests, setRequests] = useState<ContactRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);

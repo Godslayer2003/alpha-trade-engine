@@ -83,3 +83,31 @@ association are required before either can be verified or changed.
 - Monetary spending caps/alerts and the production Gemini project/key association remain unverified. Existing request quotas are not currency budgets.
 - Broad Strix scans previously hit their turn limits. They are incomplete, not clean security verdicts. No new paid or externally uploaded scan was started in this follow-up.
 - Tailwind/build-tool dependency advisories still need a compatibility-preserving fix or a tested migration. Production dependency scanning remains a required CI gate.
+
+## 8 October continuation
+
+- PR #11 is merged at 5637c0310440682efa0ffdd0ee0568608d7dbc82. Vercel's
+  production alias and both Render services were verified at that commit;
+  public health checks passed and anonymous protected routes returned 401.
+- Operator approved the database transition. Created the independent SQL runtime
+  role, applied grants and verified restrictions on production metadata. Saved
+  a free Neon recovery snapshot and configured the existing owner credential in
+  GitHub's protected migration environment without disclosing it. The runtime
+  password and Render connection change remain pending credential handoff.
+- The first protected migration run passed Prisma migration checks but failed
+  the grant step because PGDATABASE contained a URL instead of a database name.
+  Replaced that step with explicit libpq environment fields; added encoded-password,
+  TLS and stale-environment regression checks and actual psql grant coverage in CI.
+- OpenAI shows Free tier and zero remaining credit; its active deployed key matches
+  the Default project. Gemini's deployed key was compared exactly with AI Studio's
+  Gemini Project key (gen-lang-client-0159310057); its project-specific Spend page
+  confirms no billing is configured. Both keys passed read-only model-list
+  authentication. No credits, payment details, paid plans or subscriptions were added.
+  Provider request authentication does not establish successful paid generation,
+  and no monetary cap/alert was configured on these free-tier accounts.
+- Docker Desktop recovered after both inaccessible runtime socket directories
+  were preserved and replaced together; no factory reset or VM/data deletion.
+  Strix ran with subscription authentication on a credential-free source snapshot,
+  then resumed after its turn limit. Its final report explicitly marks coverage
+  incomplete: only source inventory was completed, with no confirmed findings.
+  This is not a clean security verdict. Reports remain local under strix_runs.

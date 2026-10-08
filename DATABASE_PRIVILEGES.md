@@ -4,6 +4,25 @@ The live Blueprint and default Docker target still use the existing startup
 migration contract. The `runtime` and `migration` targets are staged for an
 authorized transition; merging this preparation does not restrict production.
 
+## 8 October production preparation
+
+Operator approval was received. SQL-created `alpha_runtime_ate` has LOGIN and
+all privileged flags disabled, no memberships and no ownership. The committed
+grant transaction was applied as `neondb_owner`. Metadata checks confirmed
+CONNECT, application grants on 17 tables, and no database/schema CREATE,
+TEMPORARY, migration-table SELECT or User TRUNCATE privilege. Current connections
+used only the owner role. A free manual Neon snapshot was created at
+2026-10-08 00:49:53 UTC and shows no expiry. The previous PUBLIC database grant
+included CONNECT/TEMPORARY; public schema had USAGE and no PUBLIC table grants.
+
+The role has no password. GitHub's migration environment now has the existing
+owner connection secret, verified against Neon without displaying credentials.
+Render still uses the owner connection and startup migrations. Do not
+activate the runtime command until credential entry, the protected migration
+job and authenticated disposable-account verification are complete. SQL-created
+roles do not appear in the provider-managed Neon Roles list; do not create a
+second privileged provider role to work around that UI limitation.
+
 ## Migration job
 
 `.github/workflows/database-migrations.yml` is a manual master-only job with a
@@ -11,12 +30,19 @@ concurrency lock. Before any production run, configure the protected
 `production-database-migrations` environment, required operator approval and its
 `MIGRATION_DATABASE_URL` secret and `RUNTIME_DATABASE_ROLE` variable. The environment
 has been created with operator review, admin bypass disabled and master-only
-deployment policy; its role variable is `alpha_runtime_ate`. It has no secrets yet.
+deployment policy; its role variable is `alpha_runtime_ate`. Its owner secret is configured.
 The job exposes
 that secret only to the Prisma migration and runtime-grant steps. Do not copy it
 to the API, web or AI environments. Test the grants against a disposable database
 and inspect production ACLs before authorizing this workflow; it reapplies grants
 after each migration.
+
+The first authorized run applied migration checks successfully but its psql step
+fell back to a local socket: an entire URL in PGDATABASE does not select its host.
+`scripts/database-grants.cjs` now passes parsed libpq connection fields through
+the child environment, preserves TLS/channel binding, removes stale PG overrides
+and keeps secrets out of process arguments. CI exercises the actual psql command
+against disposable PostgreSQL before checking the restricted login.
 
 Alternatively build `apps/api/Dockerfile` with `--target migration` and supply the
 owner `DATABASE_URL` only to an authorized ephemeral job. Do not provision a paid

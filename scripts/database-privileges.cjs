@@ -24,6 +24,12 @@ async function main() {
       await tx.$queryRaw`SELECT set_config('alpha.runtime_role', ${role}, true)`;
       await tx.$executeRawUnsafe(sql.slice(sql.indexOf('DO $$')));
     });
+    if (process.env.TEST_PSQL_GRANTS === 'true') {
+      const grants = spawnSync(process.execPath, ['scripts/database-grants.cjs'], {
+        env: { ...process.env, RUNTIME_DATABASE_ROLE: role }, stdio: 'inherit',
+      });
+      assert.equal(grants.status, 0, 'Protected migration grant command must connect and apply grants');
+    }
     url.username = role;
     url.password = password;
     runtime = new PrismaClient({ datasources: { db: { url: url.toString() } } });

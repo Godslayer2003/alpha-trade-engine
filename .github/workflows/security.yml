@@ -31,12 +31,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/toolchain-compatibility.cjs
+      - run: node --test scripts/database-grants.spec.cjs
       - run: npm run prisma:generate
       - run: npm run build
       - run: npm run test:web-quality
       - run: npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
       - run: node scripts/security-integration.cjs
       - run: node scripts/database-privileges.cjs
+        env:
+          TEST_PSQL_GRANTS: 'true'
       - run: npm run test --workspace=apps/api -- --runInBand
       - run: npm run test:e2e --workspace=apps/api -- --runInBand
       - run: npm audit --omit=dev --audit-level=moderate

@@ -13,11 +13,15 @@ The database privilege transition is staged, not active: the API Dockerfile has
 separate `migration` and `runtime` targets, while its default `legacy` target
 preserves startup migrations. A manual master-only GitHub migration workflow is
 prepared for a protected environment that will hold the owner credential; the runtime
-target starts only the API with a restricted connection. No production role,
-secret or service setting has been changed by this preparation. See
+target starts only the API with a restricted connection. On 8 October, the
+authorized production role `alpha_runtime_ate` and application grants were
+created and verified, with a free Neon recovery snapshot retained. The role has
+no password yet; the API still uses its existing connection and startup migrations.
+The existing owner credential is now in the protected GitHub migration job;
+Render's connection and service settings remain unchanged. See
 DATABASE_PRIVILEGES.md for activation, shared PUBLIC grant effects and rollback.
 That environment is configured with operator review and master-only deployment;
-it contains no credentials yet. Render supports a Docker Command override for
+its owner secret is configured. Render supports a Docker Command override for
 starting the API without migrations during the restricted-role transition.
 Payment verification also requires the expected one-time USD 5 amount/currency
 and payment mode before granting access; checkout identifiers are bounded.

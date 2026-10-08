@@ -1,5 +1,8 @@
 # Reel security follow-up
 
+Current status is recorded in the final 8 October activation section below.
+Earlier sections retain historical observations and preparation limits.
+
 ## Verified provider state
 
 The production API connects to the Neon Alpha Trade Engine project and its production branch. The database credential was rotated by the operator and the replacement Render deployment became live. Database migrations run before API startup, so the successful rollout verifies connectivity; the health route alone does not query PostgreSQL.
@@ -120,3 +123,31 @@ association are required before either can be verified or changed.
   Render's API auto-deploy setting is Off and its Docker Command is runtime-only;
   the Blueprint now preserves the protected-job/manual-release contract. The
   runtime credential remains unchanged until the required password handoff.
+
+## 8 October activation and review outcome
+
+- The protected migration job passed at PR #13's merge commit
+  `aafff29c8752d581957994702043785c8c47d9b2`. Render's API now uses
+  `alpha_runtime_ate`, with no privileged flags, memberships or object ownership,
+  and starts without migrations. Deployment `dep-db3f5h32blpc73bsbsng` is live
+  at that commit. The owner credential remains in the protected migration job.
+- A secure terminal/API flow completed the approved credential activation.
+  The new restricted connection authenticated before the Render update;
+  credentials were not displayed. Windows user DPAPI protects the local
+  connection and rollback export outside Git.
+- Disposable production acceptance passed database identity and privilege
+  metadata, atomic quota writes, registration, sessions, secure cookies,
+  cross-account strategy denial, MFA, safe export, session revocation and deletion.
+  Test accounts were removed. This is narrower than full production security testing.
+- Targeted manual source review covered session validation and revocation,
+  ADMIN/MFA guards, account exports and deletion, portfolio/strategy ownership,
+  payment verification, durable AI quotas and outbound market/provider boundaries.
+  The confirmed Telegram quota gap was fixed with six regressions in PR #13.
+  Required CI passed 41 API unit tests, ten HTTP tests, database privilege and
+  account integration, container checks, web quality and secret scanning.
+- The remaining full-tree audit findings are five high package findings in
+  the unpatched development-only braces chain; production audit reports zero.
+  Provider associations and free-tier billing state are verified, but monetary
+  caps/alerts are not configured. No paid billing was enabled.
+- Strix coverage remains explicitly incomplete. The targeted review and passing
+  checks do not establish a whole-system penetration-test result.

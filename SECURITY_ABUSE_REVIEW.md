@@ -22,6 +22,15 @@ Confirmed gap: an authenticated MFA-enabled account could change its password us
 
 Follow-up container hardening: the API image explicitly sets production mode and runs as the unprivileged `node` user. Local disposable-container checks verified migrations/startup, non-root execution, read-only application code, secure HttpOnly cookies, no bearer token in registration responses, anonymous admin denial and fail-closed AI chat without payment configuration. CI now builds and checks the actual API image before merging. The Render Blueprint declares production mode explicitly as well.
 
-Production database privileges and provider billing caps/alerts have not been independently verified in their provider accounts. Existing AI request quotas limit request counts, not total monetary spending. No provider spending cap or notification setting was changed. Private uploads and credentials were not sent to a new external scanning service. Broader security testing remains necessary; these controls do not make the app hack-proof.
+The 8 October production transition verified the restricted database role and
+its grants; disposable live account/MFA/ownership checks passed. Exact deployed
+OpenAI and Gemini key/project associations and their free-tier billing state
+were verified. Monetary caps/alerts are not configured. Existing AI request
+quotas limit request counts, not total monetary spending. No paid billing was
+enabled. Private uploads and credentials were not sent to a new external scanning
+service. The latest Strix report remains incomplete; targeted manual review
+found and fixed Telegram's shared AI quota gap. See REEL_FOLLOWUP.md for the
+review scope and remaining development dependency advisories. These checks
+do not make the app hack-proof.
 
 Guidance: [OWASP MFA](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html), [OWASP authentication](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html), [Gitleaks](https://github.com/gitleaks/gitleaks).

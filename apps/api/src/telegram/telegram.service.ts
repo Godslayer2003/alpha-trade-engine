@@ -7,6 +7,7 @@ import { PortfolioService } from '../portfolio/portfolio.service';
 import { AnalysisService } from '../analysis/analysis.service';
 import { AssistantService } from '../assistant/assistant.service';
 import { PaymentsService } from '../payments/payments.service';
+import { SecurityQuotaService } from '../auth/security-quota.service';
 
 const currency = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 
@@ -24,6 +25,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     private readonly analysisService: AnalysisService,
     private readonly assistantService: AssistantService,
     private readonly paymentsService: PaymentsService,
+    private readonly quota: SecurityQuotaService,
   ) {}
 
   private token: string | null = null;
@@ -220,10 +222,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         await ctx.reply('Usage: /ask <question>');
         return;
       }
+      if (question.length > 4_000) {
+        await ctx.reply('Keep your question within 4,000 characters.');
+        return;
+      }
       try {
-        // Not hard-required like /portfolio — an unlinked chat still gets a
-        // normal AI Guide reply, it just can't trigger workflows (those need
-        // a resolved userId).
         const userId = await this.requireLinkedUser(ctx);
         if (!userId) return;
         const { paid } = await this.paymentsService.getStatus(userId);
@@ -231,6 +234,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           await ctx.reply('AI Guide access is not unlocked for this account. Complete checkout in the dashboard first.');
           return;
         }
+        await this.quota.consume('chat-user', userId, 50, 86_400_000);
+        await this.quota.consume('ai-global', 'application', 500, 86_400_000);
         const result = await this.assistantService.chat([{ role: 'user', content: question }]);
         await ctx.reply(result.reply);
       } catch (err) {

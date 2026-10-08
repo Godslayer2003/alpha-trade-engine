@@ -7,18 +7,19 @@
 - Both service containers run as the unprivileged `node` user. The API image explicitly enables production mode after compilation, so secure cookies and required production secrets cannot depend on an omitted deployment variable.
 - `packages/ai-engine`: strict TypeScript internal market analysis service on Render, compiled before deployment and run with Node.js native HTTP/fetch APIs. Supplies candles, delayed quotes, rules-based signals and text chunks. It has no customer database access. Protect its non-health endpoints with `AI_ENGINE_SHARED_SECRET`; fetch market data only from fixed Yahoo Finance and Binance endpoints.
 - `packages/shared-types`: cross-service TypeScript contracts. Types supplement runtime validation; they do not validate untrusted HTTP responses.
-- `packages/database`: Prisma schema and migrations. Apply migrations through the API deployment. Account-owned data uses foreign-key deletion rules.
+- `packages/database`: Prisma schema and migrations. Apply migrations through the protected GitHub owner job before each manual API release. Account-owned data uses foreign-key deletion rules.
 
-The database privilege transition is staged, not active: the API Dockerfile has
+The database credential transition remains pending: the API Dockerfile has
 separate `migration` and `runtime` targets, while its default `legacy` target
 preserves startup migrations. A manual master-only GitHub migration workflow is
 prepared for a protected environment that will hold the owner credential; the runtime
 target starts only the API with a restricted connection. On 8 October, the
 authorized production role `alpha_runtime_ate` and application grants were
 created and verified, with a free Neon recovery snapshot retained. The role has
-no password yet; the API still uses its existing connection and startup migrations.
+no password yet; the API still uses its existing owner connection.
 The existing owner credential is now in the protected GitHub migration job;
-Render's connection and service settings remain unchanged. See
+Render now has automatic API deployment disabled and a runtime-only Docker
+Command; the Blueprint preserves that contract. See
 DATABASE_PRIVILEGES.md for activation, shared PUBLIC grant effects and rollback.
 That environment is configured with operator review and master-only deployment;
 its owner secret is configured. Render supports a Docker Command override for
@@ -32,6 +33,10 @@ Read SECURITY.md in full before changing security-sensitive code. Database-backe
 
 OpenAI and Gemini calls originate in the API. Secrets belong in approved service environment variables. Never send them to the web bundle, source control, diagnostics or exports. Account export uses an explicit safe field list. Security integration tests use disposable data.
 
+Telegram's linked, paid `/ask` path consumes the same daily account and global
+AI quota buckets as web chat before calling a provider. Questions are bounded
+to 4,000 characters; the Telegram chat identity never replaces the linked user ID.
+
 The application supports simulated trading. Market quotes are delayed source closes, not guaranteed executable prices. The current payment flow is a one-time payment; do not invent subscriptions or renewal disclosures. Keep privacy statements consistent with actual processing and retention. No public privacy contact has been authorized; do not publish the administrator's email.
 
 ## Product structure
@@ -42,7 +47,12 @@ The root layout owns the shared navigation, sign-in controls and footer. Each pa
 
 The web app and API use strict TypeScript. Production builds must pass compiler checks. Do not weaken compiler options or bypass runtime validation to silence errors. Update service contracts and their callers together.
 
-GitHub master is the production source for Vercel and the two Render services. Use a codex/ branch, reviewable PR and required checks before merging. Preserve deployment secrets and keep a rollback commit. Verify the public production alias and both service deployments against the merged commit.
+GitHub master is the production source for Vercel and the two Render services.
+Vercel and the AI engine deploy automatically; API releases require the protected
+migration job followed by a manual deployment of the exact reviewed commit.
+Use a codex/ branch, reviewable PR and required checks before merging. Preserve
+deployment secrets and keep a rollback commit. Verify the public production
+alias and both service deployments against the merged commit.
 
 ## Verification boundaries
 

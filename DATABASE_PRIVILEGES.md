@@ -1,8 +1,9 @@
 # Staged database privilege separation
 
-The live Blueprint and default Docker target still use the existing startup
-migration contract. The `runtime` and `migration` targets are staged for an
-authorized transition; merging this preparation does not restrict production.
+The default Docker target retains the legacy startup migration command for local
+compatibility. Render and the Blueprint now select the runtime-only Docker
+Command with automatic API deployments disabled. The owner migration job runs
+before each manual API release. Runtime credential replacement remains pending.
 
 ## 8 October production preparation
 
@@ -17,9 +18,11 @@ included CONNECT/TEMPORARY; public schema had USAGE and no PUBLIC table grants.
 
 The role has no password. GitHub's migration environment now has the existing
 owner connection secret, verified against Neon without displaying credentials.
-Render still uses the owner connection and startup migrations. Do not
-activate the runtime command until credential entry, the protected migration
-job and authenticated disposable-account verification are complete. SQL-created
+Render still uses the owner connection. Its runtime-only command and manual
+deployment contract are configured; the protected migration job passed at
+dcd3ff356480b8fb5cbfee5dc5d62e33328c374d. Do not replace the runtime connection
+until credential entry and authenticated disposable-account verification are
+ready. SQL-created
 roles do not appear in the provider-managed Neon Roles list; do not create a
 second privileged provider role to work around that UI limitation.
 

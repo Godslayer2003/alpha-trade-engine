@@ -63,6 +63,8 @@ model User {
   sessions       AuthSession[]
   assistantFeedback AssistantFeedback[]
   termsAcceptedAt DateTime?
+  aiCountry      String?
+  aiAdultConfirmedAt DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   profile        UserProfile?
@@ -74,6 +76,16 @@ model User {
   telegramLink   TelegramLink?
   chatAccessPaid       Boolean @default(false)
   stripePaymentIntentId String?
+}
+
+model ContactRequest {
+  id        String @id @default(uuid())
+  email     String
+  category  String
+  message   String
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+  @@index([resolvedAt, createdAt])
 }
 
 model AuthSession {

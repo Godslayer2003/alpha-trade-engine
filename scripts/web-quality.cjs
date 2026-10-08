@@ -24,7 +24,7 @@ async function main() {
     await delay(250);
   }
   assert(ready, 'Production web server did not start');
-  const routes = ['/dashboard', '/components', '/workflows', '/onboarding', '/settings', '/privacy', '/disclaimer', '/account-recovery'];
+  const routes = ['/dashboard', '/components', '/workflows', '/onboarding', '/settings', '/privacy', '/disclaimer', '/account-recovery', '/contact', '/ai-access'];
   const titles = new Set();
   const links = new Set();
   for (const route of routes) {

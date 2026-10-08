@@ -17,22 +17,21 @@ export class PaymentsService {
     return this.stripe;
   }
 
-  async getStatus(userId: string): Promise<{ paid: boolean; admin: boolean }> {
-    // No Stripe configured (e.g. local dev without a key) — paywall
-    // disabled entirely rather than locking chat out with no way to pay,
-    // matching how TELEGRAM_BOT_TOKEN/RESEND_API_KEY degrade when unset.
+  async getStatus(userId: string): Promise<{ paid: boolean; admin: boolean; checkoutAvailable: boolean }> {
+    // Local fixtures can use chat without Stripe. Production always uses
+    // stored entitlements; a billing outage must not revoke existing access.
     if (!this.stripe) {
-      if (process.env.NODE_ENV === 'production') {
-        throw new BadRequestException('Payments are temporarily unavailable.');
-      }
-      return { paid: true, admin: false };
+      if (process.env.NODE_ENV !== 'production') return { paid: true, admin: false, checkoutAvailable: false };
     }
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    if (user.role === 'ADMIN') return { paid: true, admin: true };
-    return { paid: user.chatAccessPaid, admin: false };
+    const checkoutAvailable = !!this.stripe && (process.env.NODE_ENV !== 'production' ||
+      (process.env.COMMERCE_ENABLED === 'true' && !!process.env.PUBLIC_SELLER_NAME?.trim() && !!process.env.PUBLIC_SELLER_ADDRESS?.trim()));
+    if (user.role === 'ADMIN') return { paid: true, admin: true, checkoutAvailable };
+    return { paid: user.chatAccessPaid, admin: false, checkoutAvailable };
   }
 
   async createCheckoutSession(userId: string, email: string): Promise<{ url: string }> {
+    if (!(await this.getStatus(userId)).checkoutAvailable) throw new BadRequestException('New purchases are unavailable while seller and payment setup are incomplete.');
     const stripe = this.requireStripe();
     const webOrigin = process.env.WEB_ORIGIN?.split(',')[0]?.trim().replace(/\/$/, '');
     if (!webOrigin) {

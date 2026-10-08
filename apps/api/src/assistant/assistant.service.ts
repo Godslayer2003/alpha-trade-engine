@@ -2,7 +2,7 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 import { GoogleGenAI } from '@google/genai';
 import { AiEngineClient } from '../ai-engine/ai-engine-client.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatMessageDto } from './dto/chat.dto';
+import { ChatContextDto, ChatMessageDto } from './dto/chat.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { DEFAULT_KNOWLEDGE_BASE, DEFAULT_SYSTEM_PROMPT } from './assistant.defaults';
@@ -59,7 +59,7 @@ export class AssistantService {
   async chat(
     messages: ChatMessageDto[],
     model?: string,
-    context?: Record<string, unknown>,
+    context?: ChatContextDto,
   ): Promise<ChatResult> {
     const config = await this.getConfig();
 
@@ -126,7 +126,7 @@ export class AssistantService {
     if (this.gemini) return this.gemini;
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new ServiceUnavailableException('Gemini AI Guide is not configured on this server.');
-    this.gemini = new GoogleGenAI({ apiKey });
+    this.gemini = new GoogleGenAI({ apiKey, httpOptions: { timeout: REQUEST_TIMEOUT_MS } });
     return this.gemini;
   }
 
@@ -166,6 +166,7 @@ export class AssistantService {
       });
       const body = await response.json().catch(() => null) as {
         output_text?: string;
+        output?: { type: string; content?: { type: string; text?: string }[] }[];
         error?: { message?: string };
         usage?: { input_tokens?: number; output_tokens?: number };
       } | null;
@@ -174,7 +175,10 @@ export class AssistantService {
         this.logger.warn(`OpenAI AI Guide request failed with status ${response.status}.`);
         throw new ServiceUnavailableException('OpenAI AI Guide is temporarily unavailable. Please try again shortly.');
       }
-      const reply = body?.output_text?.trim();
+      // output_text is an SDK convenience; the REST response uses output[].content[].
+      const reply = (body?.output_text ?? body?.output?.filter(item => item.type === 'message')
+        .flatMap(item => item.content ?? []).filter(item => item.type === 'output_text')
+        .map(item => item.text ?? '').join('\n'))?.trim();
       if (!reply) throw new Error('OpenAI returned no text.');
       return {
         reply,

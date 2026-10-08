@@ -55,6 +55,7 @@ export class AccountTokenService {
       if (claimed.count !== 1) throw new BadRequestException('Invalid or expired account link.');
       await tx.user.update({ where: { id: record.userId }, data: purpose === 'reset' ? { passwordHash } : { emailVerifiedAt: new Date() } });
       if (purpose === 'reset') {
+        await tx.user.updateMany({ where: { id: record.userId, mfaEnabled: false }, data: { mfaSecret: null, mfaLastStep: -1 } });
         await tx.authSession.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
         await tx.accountToken.updateMany({ where: { userId: record.userId, purpose: 'reset', consumedAt: null }, data: { consumedAt: new Date() } });
       }

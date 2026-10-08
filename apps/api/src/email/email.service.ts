@@ -20,12 +20,14 @@ export class EmailService {
   async sendDailyReport(to: string, subject: string, html: string): Promise<void> {
     const client = this.getClient();
 
-    await Promise.race([
-      client.emails.send({ from: FROM_ADDRESS, to, subject, html }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Email send timed out')), REQUEST_TIMEOUT_MS),
-      ),
-    ]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await Promise.race([
+        client.emails.send({ from: process.env.EMAIL_FROM || FROM_ADDRESS, to, subject, html }),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new ServiceUnavailableException('Email delivery timed out.')), REQUEST_TIMEOUT_MS); }),
+      ]);
+      if (result.error) throw new ServiceUnavailableException('Email report could not be delivered.');
+    } finally { clearTimeout(timer); }
   }
 
   private getClient(): Resend {

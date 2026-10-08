@@ -11,6 +11,7 @@ import { EmailModule } from '../email/email.module';
 import { AccountManagementController } from './account-management.controller';
 import { AccountManagementService } from './account-management.service';
 import { RetentionService } from './retention.service';
+import { AiEligibilityService } from './ai-eligibility.service';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { RetentionService } from './retention.service';
     }),
   ],
   controllers: [AuthController, AccountManagementController],
-  providers: [AuthService, JwtStrategy, SecurityQuotaService, MfaService, AccountTokenService, AccountManagementService, RetentionService],
-  exports: [JwtModule, SecurityQuotaService],
+  providers: [AuthService, JwtStrategy, SecurityQuotaService, MfaService, AccountTokenService, AccountManagementService, RetentionService, AiEligibilityService],
+  exports: [JwtModule, SecurityQuotaService, AiEligibilityService],
 })
 export class AuthModule {}

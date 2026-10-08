@@ -107,6 +107,7 @@ export class AuthService {
         throw new UnauthorizedException('Account security changed. Try again.');
       }
       await tx.user.update({ where: { id: userId }, data: { passwordHash } });
+      await tx.user.updateMany({ where: { id: userId, mfaEnabled: false }, data: { mfaSecret: null, mfaLastStep: -1 } });
       await tx.authSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
       await tx.accountToken.updateMany({ where: { userId, purpose: 'reset', consumedAt: null }, data: { consumedAt: new Date() } });
     }, { isolationLevel: 'Serializable' });

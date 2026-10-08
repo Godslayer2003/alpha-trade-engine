@@ -53,7 +53,7 @@ export class NotificationsService {
           profile.dailyReportChannels,
         );
         if (errors.length > 0) {
-          this.logger.warn(`Daily report partially failed for user ${profile.userId}: ${errors.join('; ')}`);
+          this.logger.warn('Daily report channel delivery failed.');
         }
 
         if (sent.length > 0) {
@@ -63,7 +63,7 @@ export class NotificationsService {
           });
         }
       } catch (err) {
-        this.logger.warn(`Daily report failed for user ${profile.userId}: ${(err as Error).message}`);
+        this.logger.warn('Daily report failed.');
       }
     }
   }
@@ -95,7 +95,7 @@ export class NotificationsService {
           sent.push('TELEGRAM');
         }
       } catch (err) {
-        errors.push(`Telegram: ${(err as Error).message}`);
+        errors.push('Telegram delivery failed. Check your connection and try again.');
       }
     }
     if (profile.dailyReportChannels.includes('EMAIL')) {
@@ -104,7 +104,7 @@ export class NotificationsService {
         await this.emailService.sendDailyReport(profile.notificationEmail ?? profile.user.email, subject, html);
         sent.push('EMAIL');
       } catch (err) {
-        errors.push(`Email: ${(err as Error).message}`);
+        errors.push('Email delivery failed. Check your address and try again.');
       }
     }
     return { sent, errors };
@@ -136,7 +136,7 @@ export class NotificationsService {
           sent.push('TELEGRAM');
         }
       } catch (err) {
-        errors.push(`Telegram: ${(err as Error).message}`);
+        errors.push('Telegram delivery failed. Check your connection and try again.');
       }
     }
 
@@ -146,7 +146,7 @@ export class NotificationsService {
         await this.emailService.sendDailyReport(notificationEmail ?? accountEmail, 'Your Daily Alpha-Trade Report', html);
         sent.push('EMAIL');
       } catch (err) {
-        errors.push(`Email: ${(err as Error).message}`);
+        errors.push('Email delivery failed. Check your address and try again.');
       }
     }
 

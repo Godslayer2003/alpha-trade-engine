@@ -371,6 +371,7 @@ export default function SettingsPage() {
           >
             Open AI Guide settings
           </Link>
+          <div className="mt-4 flex flex-wrap gap-4 text-sm"><Link href="/ai-access" className="underline">AI eligibility</Link><Link href="/settings/requests" className="underline">Operator request inbox</Link></div>
         </section>
 
         <section className={CARD + ' border-rose-300 dark:border-rose-900'}>

@@ -4,6 +4,7 @@ import { UpdateProfileDto } from '../profile/dto/update-profile.dto';
 import { CreateStrategyDto } from '../strategy/dto/create-strategy.dto';
 import { UpdateStrategyDto } from '../strategy/dto/update-strategy.dto';
 import { UpdateConfigDto } from '../assistant/dto/update-config.dto';
+import { ChatRequestDto } from '../assistant/dto/chat.dto';
 
 describe('Persisted input limits', () => {
   const pipe = new ValidationPipe({ whitelist: true, transform: true });
@@ -47,5 +48,10 @@ describe('Persisted input limits', () => {
 
   it('strips client-supplied ownership and privilege fields', async () => {
     expect(await validate(UpdateProfileDto, { firstName: 'Test', userId: 'another-user', role: 'ADMIN' })).toEqual({ firstName: 'Test' });
+  });
+  it('allows only bounded research fields in AI context', async () => {
+    const result = await validate(ChatRequestDto, { messages: [{ role: 'user', content: 'Explain the app' }], context: { symbol: 'QQQ', assetClass: 'EQUITY', timeframe: '1D', portfolio: { cash: 10000 }, userId: 'private' } });
+    expect(result.context).toEqual({ symbol: 'QQQ', assetClass: 'EQUITY', timeframe: '1D' });
+    await expect(validate(ChatRequestDto, { messages: [{ role: 'user', content: 'Hi' }], context: { symbol: 'x'.repeat(65) } })).rejects.toThrow();
   });
 });

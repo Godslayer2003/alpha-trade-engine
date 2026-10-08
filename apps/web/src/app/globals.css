@@ -1,6 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss" source("../");
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Preserve the v3 border default while upgrading the build tooling. */
+@layer base {
+  *, ::before, ::after { border-color: var(--color-slate-200); }
+}
 
 @layer base {
   :focus-visible { outline: 2px solid #059669; outline-offset: 3px; }

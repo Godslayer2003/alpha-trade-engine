@@ -8,6 +8,7 @@ async (page) => {
     const path = new URL(route.request().url()).pathname;
     let status=200, data=[];
     if(path.endsWith('/auth/session')) {status=signedIn?200:401;data=signedIn?{user:{id:'privacy-fixture',email:'fixture@example.invalid'}}:{message:'Unauthorized'};}
+    else if(path.endsWith('/auth/ai-eligibility')) data={eligible:true};
     else if(path.endsWith('/profile')) data={riskTolerance:'MODERATE',timeHorizonYears:5,age:null,profilePictureUrl:null,dailyReportEnabled:false,dailyReportTime:'08:00',dailyReportChannels:[]};
     else if(path.endsWith('/payments/status')) data={paid:true,admin:false};
     else if(path.endsWith('/market/candles')) data=candles;

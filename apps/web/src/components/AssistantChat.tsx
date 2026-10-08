@@ -8,6 +8,7 @@ import {
   chatWithAssistant,
   createCheckoutSession,
   fetchPaymentStatus,
+  fetchAiEligibility,
   submitAssistantFeedback,
   verifyCheckoutSession,
   ASSISTANT_MODELS,
@@ -45,8 +46,17 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   // gate below only ever checks it when `token` is present).
   const [paid, setPaid] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [checkoutAvailable, setCheckoutAvailable] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [eligible, setEligible] = useState<boolean | null>(null);
+  useEffect(() => {
+    setEligible(null);
+    if (!token) return;
+    let active = true;
+    fetchAiEligibility(token).then(result => { if(active) setEligible(result.eligible); }).catch(() => { if(active) setEligible(false); });
+    return () => { active = false; };
+  }, [token]);
 
   useEffect(() => {
     if (!token) return;
@@ -68,6 +78,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
       .then((res) => {
         setPaid(res.paid);
         setIsAdmin(res.admin);
+        setCheckoutAvailable(res.checkoutAvailable === true);
       })
       .catch(() => setPaid(false));
   }, [token]);
@@ -202,6 +213,8 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">Log in to use the AI Guide chat.</p>
         </div>
+      ) : eligible !== true ? (
+        <div className="p-4 text-sm"><p>AI features are currently limited to adults aged 18 or older in Canada.</p><Link href="/ai-access" className="underline">Confirm AI eligibility</Link></div>
       ) : paid === false ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -209,11 +222,12 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
           </p>
           <button
             onClick={unlock}
-            disabled={unlocking}
+            disabled={unlocking || !checkoutAvailable}
             className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white"
           >
             {unlocking ? 'Redirecting…' : 'Unlock AI Guide — US$5'}
           </button>
+          {!checkoutAvailable && <p className="text-xs">New purchases are currently unavailable. <Link href="/contact" className="underline">Contact support</Link>.</p>}
           <p className="text-[10px] text-slate-500">One-time payment; no automatic renewal. Refund policy and statutory rights: <Link href="/disclaimer" className="underline">Terms</Link>.</p>
           {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
         </div>

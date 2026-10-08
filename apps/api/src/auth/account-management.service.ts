@@ -22,6 +22,7 @@ export class AccountManagementService {
     // An explicit allowlist prevents credentials and security tokens entering downloads.
     return this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: {
       id: true, email: true, createdAt: true, termsAcceptedAt: true, emailVerifiedAt: true,
+      aiCountry: true, aiAdultConfirmedAt: true,
       chatAccessPaid: true, stripePaymentIntentId: true, profile: true, strategies: true,
       portfolios: { include: { holdings: true, trades: true } }, savedAnalyses: true, recommendations: true,
       brokerAccounts: { select: { id: true, brokerName: true, isApiConnected: true, supportedStyles: true, createdAt: true } },

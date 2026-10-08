@@ -9,7 +9,7 @@ export default function DisclaimerPage() {
     <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 p-6">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-          <h1 className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+          <h1 className="text-2xl font-bold tracking-tight">
             Disclaimer &amp; Terms of Use
           </h1>
           <Link href="/dashboard" className="text-xs text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 underline">
@@ -33,8 +33,10 @@ export default function DisclaimerPage() {
             <h2 className="font-semibold text-slate-900 dark:text-slate-100 mb-1.5">2. Simulated trading only</h2>
             <p>
               All trading on the platform is simulated using fake currency in a practice portfolio. No real money,
-              securities, or assets are ever transacted through this platform, and it is not a broker-dealer,
-              exchange, or investment adviser. Simulated performance does not represent, and is not indicative of,
+              securities, or assets are bought or sold through the practice trading controls. The separate AI Guide
+              access payment is a real charge. The platform does not execute investment orders or hold investment funds.
+              Its educational description does not establish a regulatory exemption or registration status.
+              Simulated performance does not represent, and is not indicative of,
               results you would achieve trading real capital.
             </p>
           </section>
@@ -69,13 +71,14 @@ export default function DisclaimerPage() {
               any loss, damage, or unsuccessful trading or investment outcome — direct, indirect, incidental, or
               consequential — arising from or related to your use of the platform, your reliance on any
               information presented on it, or any real-world financial decision you make in connection with it.
+              These terms do not exclude consumer or privacy rights that applicable law does not permit us to exclude.
             </p>
           </section>
 
           <section>
             <h2 className="font-semibold text-slate-900 dark:text-slate-100 mb-1.5">6. AI Guide chatbot access is non-refundable</h2>
             <p>
-              Unlocking the AI Guide chat is a one-time $5 payment with no automatic renewal. Payments are
+              Unlocking the AI Guide chat is a one-time US$5 payment with no automatic renewal. Payments are
               non-refundable except where applicable law requires otherwise. This policy does not limit your
               statutory rights. Please review the features before paying.
             </p>
@@ -86,6 +89,8 @@ export default function DisclaimerPage() {
             <p>
               By creating an account, you confirm that you have read, understood, and agree to this disclaimer.
               If you do not agree, do not create an account or use the platform.
+              Read the <Link href="/privacy" className="underline">Privacy policy</Link> for how account data,
+              AI prompts and optional notifications are processed.
             </p>
           </section>
         </div>

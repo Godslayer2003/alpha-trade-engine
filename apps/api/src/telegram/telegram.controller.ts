@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/current-user.decorator';
 import { TelegramService } from './telegram.service';
@@ -17,6 +17,12 @@ export class TelegramController {
   @Get('status')
   async getStatus(@CurrentUser() user: AuthenticatedUser) {
     return this.telegramService.getLinkStatus(user.userId);
+  }
+
+  @Delete('link')
+  async disconnect(@CurrentUser() user: AuthenticatedUser) {
+    await this.telegramService.disconnect(user.userId);
+    return { ok: true };
   }
 
   @Post('test-message')

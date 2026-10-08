@@ -18,6 +18,7 @@ describe('HTTP authorization boundaries', () => {
   const getConfig = jest.fn().mockResolvedValue({ systemPrompt: 'fixture' });
   const quota = { consume: jest.fn().mockResolvedValue(undefined) };
   const verifyPayment = jest.fn().mockResolvedValue({ paid: false });
+  const disconnectTelegram = jest.fn().mockResolvedValue(undefined);
   const sessions: Record<string, object> = {};
   const token = (sub = 'user-a', sid = 'session-a', claims = {}) => jwt.sign({ sub, sid, ...claims });
 
@@ -32,7 +33,7 @@ describe('HTTP authorization boundaries', () => {
         authSession: { findUnique: jest.fn(({ where }) => sessions[where.id] ?? null) },
         userStrategy: { findUnique: jest.fn().mockResolvedValue({ id: 'owned-by-b', userId: 'user-b' }), update, delete: remove },
       })
-      .overrideProvider(TelegramService).useValue({})
+      .overrideProvider(TelegramService).useValue({ disconnect: disconnectTelegram })
       .overrideProvider(AssistantService).useValue({ getConfig })
       .overrideProvider(AuthService).useValue({ login: jest.fn().mockRejectedValue(new UnauthorizedException()) })
       .overrideProvider(SecurityQuotaService).useValue(quota)
@@ -44,6 +45,15 @@ describe('HTTP authorization boundaries', () => {
   });
 
   afterAll(async () => { await app.close(); });
+
+  it('authenticates Telegram disconnect and derives ownership from the session', async () => {
+    disconnectTelegram.mockClear();
+    await request(app.getHttpServer()).delete('/api/v1/telegram/link').expect(401);
+    expect(disconnectTelegram).not.toHaveBeenCalled();
+    await request(app.getHttpServer()).delete('/api/v1/telegram/link')
+      .set('Authorization', `Bearer ${token()}`).send({ userId: 'user-b' }).expect(200);
+    expect(disconnectTelegram).toHaveBeenCalledWith('user-a');
+  });
 
   it('bounds checkout identifiers before provider access and supplies the authenticated owner', async () => {
     verifyPayment.mockClear();

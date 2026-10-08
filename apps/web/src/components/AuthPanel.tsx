@@ -112,7 +112,8 @@ export function AuthPanel() {
         {error && <span className="text-xs text-rose-600 dark:text-rose-400">{error}</span>}
       </div>
       {mode === 'register' && (
-        <label className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer">
+        <div className="space-y-2 text-[11px] text-slate-500 dark:text-slate-400">
+        <label className="flex items-start gap-1.5 cursor-pointer">
           <input
             type="checkbox"
             required
@@ -124,8 +125,13 @@ export function AuthPanel() {
           <Link href="/disclaimer" target="_blank" className="underline hover:text-emerald-600 dark:hover:text-emerald-400">
             Disclaimer &amp; Terms
           </Link>{' '}
-          — not financial advice, I trade at my own risk.
+          — practice trading and educational content.
         </label>
+        <p>We store account and security information to provide and protect your account.
+          Optional AI prompts and notifications go to their providers.{' '}
+          <Link href="/privacy" target="_blank" className="underline">Read the Privacy policy</Link> before signing up.
+        </p>
+        </div>
       )}
       <Link href="/account-recovery" className="text-xs text-slate-500 underline">Forgot password?</Link>
     </form>

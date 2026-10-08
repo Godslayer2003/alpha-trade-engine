@@ -148,7 +148,7 @@ export default function AssistantSettingsPage() {
         <section className={CARD}>
           <h2 className="text-sm font-semibold mb-1 text-slate-800 dark:text-slate-200">Paid chatbot access</h2>
           <p className="text-[11px] text-slate-500 mb-3">
-            Users who paid the $5 one-time charge to unlock the AI Guide chat. No refunds — see the disclaimer page.
+            Users who paid the US$5 one-time charge to unlock the AI Guide chat. Refund policy is subject to statutory rights — see the disclaimer page.
           </p>
           {paidUsers.length === 0 ? (
             <p className="text-xs text-slate-500">No paid users yet.</p>

@@ -218,6 +218,7 @@ model TelegramLink {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   chatId    String?   @unique
   linkCode  String    @unique
+  linkCodeExpiresAt DateTime?
   linkedAt  DateTime?
   createdAt DateTime  @default(now())
 }

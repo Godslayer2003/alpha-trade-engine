@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { BadRequestException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Context, Telegraf } from 'telegraf';
 import { AssetClass } from '@alpha-trade/shared-types';
@@ -117,6 +117,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   /** Proactive push (e.g. from the daily-report cron), separate from the reactive command handlers below. */
   async sendMessage(chatId: string, text: string): Promise<void> {
+    if (!/^[1-9]\d*$/.test(chatId)) {
+      throw new Error('Account notifications require a private Telegram chat. Relink from Settings.');
+    }
     if (!this.bot) {
       throw new Error('Telegram bot is not currently running — cannot send message.');
     }
@@ -134,17 +137,24 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   async getLinkStatus(userId: string): Promise<{ linked: boolean; linkedAt: string | null }> {
     const link = await this.prisma.telegramLink.findUnique({ where: { userId } });
-    return { linked: !!link?.chatId, linkedAt: link?.linkedAt?.toISOString() ?? null };
+    return { linked: !!link?.chatId && /^[1-9]\d*$/.test(link.chatId), linkedAt: link?.linkedAt?.toISOString() ?? null };
   }
 
   async createLinkCode(userId: string): Promise<string> {
+    await this.quota.consume('telegram-link-user', userId, 10, 900_000);
     const code = randomBytes(16).toString('hex');
+    const linkCode = createHash('sha256').update(code).digest('hex');
+    const linkCodeExpiresAt = new Date(Date.now() + 600_000);
     await this.prisma.telegramLink.upsert({
       where: { userId },
-      create: { userId, linkCode: code },
-      update: { linkCode: code },
+      create: { userId, linkCode, linkCodeExpiresAt },
+      update: { linkCode, linkCodeExpiresAt },
     });
     return code;
+  }
+
+  async disconnect(userId: string): Promise<void> {
+    await this.prisma.telegramLink.deleteMany({ where: { userId } });
   }
 
   private registerHandlers(bot: Telegraf) {
@@ -245,20 +255,36 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleLink(ctx: Context, code: string) {
-    const link = await this.prisma.telegramLink.findUnique({ where: { linkCode: code } });
-    if (!link) {
+    if (ctx.chat?.type !== 'private') {
+      await ctx.reply('Link your account in a private chat with this bot, not a group.');
+      return;
+    }
+    if (!/^[a-f0-9]{32}$/.test(code)) {
       await ctx.reply('That code is invalid or expired — generate a new one from the dashboard.');
       return;
     }
-    const chatId = String(ctx.chat!.id);
-    await this.prisma.telegramLink.update({
-      where: { id: link.id },
-      data: { chatId, linkedAt: new Date(), linkCode: randomBytes(16).toString('hex') },
-    });
+    try {
+      await this.quota.consume('telegram-link-chat', String(ctx.chat.id), 5, 900_000);
+      const result = await this.prisma.telegramLink.updateMany({
+        where: { linkCode: createHash('sha256').update(code).digest('hex'), linkCodeExpiresAt: { gt: new Date() } },
+        data: { chatId: String(ctx.chat.id), linkedAt: new Date(), linkCode: randomBytes(32).toString('hex'), linkCodeExpiresAt: null },
+      });
+      if (result.count !== 1) {
+        await ctx.reply('That code is invalid or expired — generate a new one from the dashboard.');
+        return;
+      }
+    } catch {
+      await ctx.reply('Could not link this chat. Try again later or generate a new code in Settings.');
+      return;
+    }
     await ctx.reply('Linked! Try /portfolio, /signal <symbol>, or /ask <question>.');
   }
 
-  private async requireLinkedUser(ctx: { chat: { id: number }; reply: (text: string) => Promise<unknown> }) {
+  private async requireLinkedUser(ctx: { chat?: { id: number; type: string }; reply: (text: string) => Promise<unknown> }) {
+    if (ctx.chat?.type !== 'private') {
+      await ctx.reply('Use a private chat with this bot for account commands.');
+      return null;
+    }
     const link = await this.prisma.telegramLink.findUnique({ where: { chatId: String(ctx.chat.id) } });
     if (!link) {
       await ctx.reply('Not linked yet. Get a code from the dashboard and send /link <code>.');

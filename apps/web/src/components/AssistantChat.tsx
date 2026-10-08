@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { useAuth } from '@/lib/auth-context';
 import {
   chatWithAssistant,
   createCheckoutSession,
   fetchPaymentStatus,
-  fetchPortfolio,
   submitAssistantFeedback,
   verifyCheckoutSession,
   ASSISTANT_MODELS,
@@ -97,18 +97,6 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
 
     try {
       const context: Record<string, unknown> = { symbol, assetClass, timeframe };
-      if (token) {
-        try {
-          const portfolio = await fetchPortfolio(token);
-          context.portfolio = {
-            cashBalance: portfolio.cashBalance,
-            totalValue: portfolio.totalValue,
-            holdingCount: portfolio.holdings.length,
-          };
-        } catch {
-          // Portfolio context is best-effort — chat still works without it.
-        }
-      }
 
       const result = await chatWithAssistant(nextMessages, context, model, token ?? undefined);
       setMessages([
@@ -156,7 +144,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white w-14 h-14 shadow-2xl flex items-center justify-center text-xl"
+        className="fixed z-40 bottom-6 right-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white w-14 h-14 shadow-2xl flex items-center justify-center text-xl"
         aria-label="Open AI guide"
       >
         ?
@@ -165,7 +153,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 max-h-[30rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col">
+    <div className="fixed z-40 bottom-4 right-4 w-80 max-w-[calc(100vw-2rem)] max-h-[min(30rem,calc(100dvh-2rem))] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col">
       <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-1.5">
         <div className="flex justify-between items-center">
           <div>
@@ -182,7 +170,7 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
                 ⚙️
               </button>
             )}
-            <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm">
+            <button aria-label="Close AI guide" onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm">
               ✕
             </button>
           </div>
@@ -190,12 +178,13 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         {showSettings && (
           <div className="rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 p-2">
             <p className="text-[11px] text-slate-700 dark:text-slate-300">
-              {isAdmin ? 'Admin access — no payment required' : 'Payment status: Paid ✓ (no refunds — see disclaimer)'}
+              {isAdmin ? 'Admin access — no payment required' : 'Payment status: Paid ✓ (refund policy subject to statutory rights — see Terms)'}
             </p>
           </div>
         )}
         <div className="flex items-center gap-1.5">
           <select
+            aria-label="AI provider"
             value={model}
             onChange={(e) => setModel(e.target.value)}
             className="flex-1 text-[10px] rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-1 focus:outline-none"
@@ -216,16 +205,16 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
       ) : paid === false ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Unlock the AI Guide chat with a one-time $5 payment.
+            Unlock the AI Guide chat with a one-time US$5 payment.
           </p>
           <button
             onClick={unlock}
             disabled={unlocking}
             className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white"
           >
-            {unlocking ? 'Redirecting…' : 'Unlock AI Guide — $5'}
+            {unlocking ? 'Redirecting…' : 'Unlock AI Guide — US$5'}
           </button>
-          <p className="text-[10px] text-slate-500">Non-refundable — see the disclaimer page.</p>
+          <p className="text-[10px] text-slate-500">One-time payment; no automatic renewal. Refund policy and statutory rights: <Link href="/disclaimer" className="underline">Terms</Link>.</p>
           {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
         </div>
       ) : (
@@ -308,6 +297,11 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         </div>
       )}
 
+      <p className="px-2 text-[11px] text-slate-600 dark:text-slate-400">
+        Messages go to your selected AI provider. Free Gemini may use content for product improvement and human review.
+        Don&apos;t enter personal or confidential information. Ratings save the question and answer for administrator review.{' '}
+        <Link href="/privacy" className="underline">Privacy details</Link>
+      </p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -316,10 +310,12 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         className="p-2 border-t border-slate-200 dark:border-slate-800 flex gap-2"
       >
         <input
+          aria-label="Message for AI Guide"
+          maxLength={4000}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Ask a question…"
-          className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="min-w-0 flex-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <button
           type="submit"

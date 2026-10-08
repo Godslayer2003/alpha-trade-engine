@@ -12,6 +12,7 @@ const { SecurityQuotaService } = require('../apps/api/dist/auth/security-quota.s
 const { AccountManagementService } = require('../apps/api/dist/auth/account-management.service');
 const { RetentionService } = require('../apps/api/dist/auth/retention.service');
 const { StrategyService } = require('../apps/api/dist/strategy/strategy.service');
+const { TelegramService } = require('../apps/api/dist/telegram/telegram.service');
 
 async function main() {
   const url = new URL(process.env.DATABASE_URL || '');
@@ -91,6 +92,26 @@ async function main() {
     const unrelated = await auth.register({ email: `other-${email}`, password, acceptedTerms: true });
     unrelatedId = unrelated.user.id;
     const strategies = new StrategyService(prisma);
+    // Real PostgreSQL races must consume a Telegram token only once.
+    const telegram = new TelegramService(prisma, {}, {}, {}, {}, { consume: async () => {} });
+    const code = await telegram.createLinkCode(userId);
+    const telegramSuccesses = [];
+    await Promise.all([101, 102].map(id => telegram.handleLink({ chat: { id, type: 'private' },
+      reply: async text => { if (text.startsWith('Linked!')) telegramSuccesses.push(id); } }, code)));
+    assert.equal(telegramSuccesses.length, 1);
+    const linked = await prisma.telegramLink.findUniqueOrThrow({ where: { userId } });
+    assert.equal(linked.chatId, String(telegramSuccesses[0]));
+    assert.equal(linked.linkCodeExpiresAt, null);
+    const expiredCode = await telegram.createLinkCode(userId);
+    await prisma.telegramLink.update({ where: { userId }, data: { linkCodeExpiresAt: new Date(Date.now() - 1) } });
+    let rejected = false;
+    await telegram.handleLink({ chat: { id: 103, type: 'private' }, reply: async text => { rejected = text.includes('invalid or expired'); } }, expiredCode);
+    assert(rejected);
+    assert.equal((await prisma.telegramLink.findUniqueOrThrow({ where: { userId } })).chatId, linked.chatId);
+    await telegram.createLinkCode(unrelatedId);
+    await telegram.disconnect(userId);
+    assert.equal(await prisma.telegramLink.count({ where: { userId } }), 0);
+    assert.equal(await prisma.telegramLink.count({ where: { userId: unrelatedId } }), 1);
     const ownedStrategy = await strategies.create(userId, { name: 'Isolation fixture', style: 'SWING_TRADING', preferredTickers: ['QQQ'] });
     await assert.rejects(strategies.update(unrelatedId, ownedStrategy.id, { name: 'Unwanted overwrite' }));
     await assert.rejects(strategies.remove(unrelatedId, ownedStrategy.id));

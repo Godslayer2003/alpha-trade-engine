@@ -492,6 +492,11 @@ export async function fetchTelegramStatus(token: string): Promise<TelegramStatus
   return res.json();
 }
 
+export async function disconnectTelegram(token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/telegram/link`, { method: 'DELETE', headers: authHeaders(token) });
+  if (!res.ok) await throwOnError(res, 'Could not disconnect Telegram');
+}
+
 export async function sendTelegramTestMessage(token: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/v1/telegram/test-message`, {
     method: 'POST',

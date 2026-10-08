@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { createTelegramLinkCode, fetchTelegramStatus } from '@/lib/api-client';
+import { createTelegramLinkCode, disconnectTelegram, fetchTelegramStatus } from '@/lib/api-client';
 
 const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 const POLL_INTERVAL_MS = 3_000;
@@ -49,9 +49,23 @@ export function ConnectTelegramButton() {
     }
   }
 
+  async function handleDisconnect() {
+    if (!token) return;
+    setLoading(true); setError(null);
+    try {
+      await disconnectTelegram(token);
+      setLinked(false); setCode(null);
+    } catch (err) { setError((err as Error).message); }
+    finally { setLoading(false); }
+  }
+
   if (linked) {
     return (
-      <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Telegram connected</span>
+      <div className="space-y-1 text-xs">
+        <span>✓ Telegram connected</span>{' '}
+        <button type="button" onClick={handleDisconnect} disabled={loading} className="underline disabled:opacity-50">{loading ? 'Disconnecting…' : 'Disconnect Telegram'}</button>
+        {error && <p role="alert">{error}</p>}
+      </div>
     );
   }
 
@@ -76,7 +90,9 @@ export function ConnectTelegramButton() {
             <code className="text-emerald-600 dark:text-emerald-400">/link {code}</code>
           </span>
         )}
-        <p className="text-slate-500">Waiting for confirmation… this updates automatically once linked.</p>
+        <p className="text-slate-500">Use a private chat. Keep this code private; it expires in ten minutes and works once. Linking sends account messages through Telegram.</p>
+        <button type="button" onClick={handleClick} disabled={loading} className="underline disabled:opacity-50">{loading ? 'Generating…' : 'Generate a new code'}</button>
+        {error && <p role="alert">{error}</p>}
       </div>
     );
   }

@@ -13,7 +13,7 @@ describe('Telegram AI spending boundaries', () => {
   const chat = jest.fn();
   const consume = jest.fn();
   const reply = jest.fn();
-  const ctx = { chat: { id: 123 }, message: { text: '/ask Explain risk' }, reply };
+  const ctx = { chat: { id: 123, type: 'private' }, message: { text: '/ask Explain risk' }, reply };
   let ask: (context: typeof ctx) => Promise<void>;
   beforeEach(() => {
     jest.clearAllMocks();
@@ -23,6 +23,7 @@ describe('Telegram AI spending boundaries', () => {
     consume.mockReset().mockResolvedValue(undefined);
     reply.mockResolvedValue(undefined);
     ctx.message.text = '/ask Explain risk';
+    ctx.chat.type = 'private';
     const service = new TelegramService(
       { telegramLink: { findUnique } } as unknown as PrismaService,
       {} as PortfolioService, {} as AnalysisService,
@@ -54,6 +55,12 @@ describe('Telegram AI spending boundaries', () => {
     await ask(ctx);
     expect(getStatus).not.toHaveBeenCalled();
     expect(consume).not.toHaveBeenCalled();
+    expect(chat).not.toHaveBeenCalled();
+  });
+  it('rejects group chats before linked-account or provider work', async () => {
+    ctx.chat.type = 'group';
+    await ask(ctx);
+    expect(findUnique).not.toHaveBeenCalled();
     expect(chat).not.toHaveBeenCalled();
   });
   it('does not call AI for an unpaid account', async () => {

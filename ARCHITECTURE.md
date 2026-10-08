@@ -40,6 +40,12 @@ OpenAI and Gemini calls originate in the API. Secrets belong in approved service
 Telegram's linked, paid `/ask` path consumes the same daily account and global
 AI quota buckets as web chat before calling a provider. Questions are bounded
 to 4,000 characters; the Telegram chat identity never replaces the linked user ID.
+Account commands, linking and proactive notifications require private Telegram
+chats. Link tokens are stored as hashes, expire after ten minutes and are consumed
+through an atomic conditional update. The nullable expiry migration invalidates
+legacy outstanding tokens; existing private links remain usable and group links
+must be replaced. AI Guide sends user messages and selected research context;
+it no longer automatically attaches account identity or portfolio balances.
 
 The application supports simulated trading. Market quotes are delayed source closes, not guaranteed executable prices. The current payment flow is a one-time payment; do not invent subscriptions or renewal disclosures. Keep privacy statements consistent with actual processing and retention. No public privacy contact has been authorized; do not publish the administrator's email.
 

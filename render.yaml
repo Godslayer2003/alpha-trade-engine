@@ -9,6 +9,9 @@ services:
     plan: free
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
+    # Run the protected owner migration workflow before each manual API release.
+    autoDeploy: false
+    dockerCommand: node apps/api/dist/main.js
     envVars:
       - key: NODE_ENV
         value: production

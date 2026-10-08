@@ -111,3 +111,12 @@ association are required before either can be verified or changed.
   then resumed after its turn limit. Its final report explicitly marks coverage
   incomplete: only source inventory was completed, with no confirmed findings.
   This is not a clean security verdict. Reports remain local under strix_runs.
+- PR #12 merged at dcd3ff356480b8fb5cbfee5dc5d62e33328c374d after all required
+  checks passed. The protected production migration rerun passed, including
+  owner migrations and refreshed restricted grants.
+- Manual review found Telegram `/ask` skipped the web account/global AI quotas.
+  Added the same durable quota buckets before provider use, bounded questions
+  to 4,000 characters and added six regressions. All 41 API unit tests passed.
+  Render's API auto-deploy setting is Off and its Docker Command is runtime-only;
+  the Blueprint now preserves the protected-job/manual-release contract. The
+  runtime credential remains unchanged until the required password handoff.

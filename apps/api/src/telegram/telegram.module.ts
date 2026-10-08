@@ -5,9 +5,10 @@ import { AssistantModule } from '../assistant/assistant.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { TelegramController } from './telegram.controller';
 import { TelegramService } from './telegram.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PortfolioModule, AnalysisModule, AssistantModule, PaymentsModule],
+  imports: [PortfolioModule, AnalysisModule, AssistantModule, PaymentsModule, AuthModule],
   controllers: [TelegramController],
   providers: [TelegramService],
   exports: [TelegramService],

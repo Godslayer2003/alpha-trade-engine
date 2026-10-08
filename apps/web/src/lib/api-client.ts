@@ -5,6 +5,37 @@ import { AssetClass, MarketCountry, MarketHoursStatus, TradeSignal } from '@alph
 // breaks charts or authenticated requests through a stale CORS allowlist.
 const API_URL = '/backend';
 
+export async function fetchAiEligibility(token: string): Promise<{ eligible: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/auth/ai-eligibility`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not check AI access');
+  return res.json();
+}
+export async function confirmAiEligibility(token: string): Promise<{ eligible: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/auth/ai-eligibility`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ country: 'CA', adult: true }) });
+  if (!res.ok) return throwOnError(res, 'Could not confirm AI access');
+  return res.json();
+}
+export async function withdrawAiEligibility(token: string): Promise<{ eligible: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/auth/ai-eligibility`, { method: 'DELETE', headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not withdraw AI eligibility');
+  return res.json();
+}
+export async function submitContactRequest(data: { email: string; category: string; message: string }): Promise<{ receipt: string }> {
+  const res = await fetch(`${API_URL}/api/v1/contact`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (!res.ok) return throwOnError(res, 'Could not submit request');
+  return res.json();
+}
+export interface ContactRequest { id: string; email: string; category: string; message: string; createdAt: string }
+export async function fetchContactRequests(token: string): Promise<ContactRequest[]> {
+  const res = await fetch(`${API_URL}/api/v1/contact`, { headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not load requests');
+  return res.json();
+}
+export async function resolveContactRequest(token: string, id: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/contact/${encodeURIComponent(id)}/resolve`, { method: 'PATCH', headers: authHeaders(token) });
+  if (!res.ok) return throwOnError(res, 'Could not resolve request');
+}
+
 export type { TradeSignal };
 
 class ApiRequestError extends Error {
@@ -687,7 +718,7 @@ export async function runWorkflow(
 
 // --- Payments (Stripe paywall on the AI Guide chatbot) ---
 
-export async function fetchPaymentStatus(token: string): Promise<{ paid: boolean; admin: boolean }> {
+export async function fetchPaymentStatus(token: string): Promise<{ paid: boolean; admin: boolean; checkoutAvailable?: boolean; seller?: { name: string; address: string } }> {
   const res = await fetch(`${API_URL}/api/v1/payments/status`, { headers: authHeaders(token) });
   if (!res.ok) return throwOnError(res, 'Could not load payment status');
   return res.json();

@@ -1,6 +1,6 @@
 // Uses only disposable local/CI PostgreSQL. Never point this test at production.
 const assert = require('node:assert/strict');
-const { randomBytes } = require('node:crypto');
+const { createHash, randomBytes } = require('node:crypto');
 const { PrismaClient } = require('@prisma/client');
 const { JwtService } = require('@nestjs/jwt');
 const { generate } = require('otplib');
@@ -13,6 +13,7 @@ const { AccountManagementService } = require('../apps/api/dist/auth/account-mana
 const { RetentionService } = require('../apps/api/dist/auth/retention.service');
 const { StrategyService } = require('../apps/api/dist/strategy/strategy.service');
 const { TelegramService } = require('../apps/api/dist/telegram/telegram.service');
+const { AiEligibilityService } = require('../apps/api/dist/auth/ai-eligibility.service');
 
 async function main() {
   const url = new URL(process.env.DATABASE_URL || '');
@@ -29,6 +30,7 @@ async function main() {
   const password = randomBytes(24).toString('hex');
   let userId;
   let unrelatedId;
+  const contactIds = [];
   try {
     const registered = await auth.register({ email, password, acceptedTerms: true });
     userId = registered.user.id;
@@ -37,6 +39,15 @@ async function main() {
     await auth.revokeSession(payload.sid, userId);
     await assert.rejects(strategy.validate(payload));
 
+    await mfa.begin(userId, password);
+    await auth.changePassword(userId, password, password);
+    assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).mfaSecret, null);
+    await mfa.begin(userId, password);
+    const enrollmentReset = randomBytes(32).toString('hex');
+    await prisma.accountToken.create({ data: { id: createHash('sha256').update(enrollmentReset).digest('hex'),
+      userId, purpose: 'reset', expiresAt: new Date(Date.now() + 60000) } });
+    await new AccountTokenService(prisma, {}).consume(enrollmentReset, 'reset', password);
+    assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).mfaSecret, null);
     const login = await auth.login({ email, password });
     const loginPayload = jwt.verify(login.accessToken);
     await assert.rejects(mfa.begin(userId, 'wrong-password'));
@@ -93,7 +104,7 @@ async function main() {
     unrelatedId = unrelated.user.id;
     const strategies = new StrategyService(prisma);
     // Real PostgreSQL races must consume a Telegram token only once.
-    const telegram = new TelegramService(prisma, {}, {}, {}, {}, { consume: async () => {} });
+    const telegram = new TelegramService(prisma, {}, {}, {}, {}, { consume: async () => {} }, {});
     const code = await telegram.createLinkCode(userId);
     const telegramSuccesses = [];
     await Promise.all([101, 102].map(id => telegram.handleLink({ chat: { id, type: 'private' },
@@ -124,14 +135,28 @@ async function main() {
     await prisma.userProfile.upsert({ where: { userId }, create: { userId, profilePictureUrl: 'data:image/png;base64,fixture' }, update: { profilePictureUrl: 'data:image/png;base64,fixture' } });
     await accounts.removePicture(userId);
     assert.equal((await prisma.userProfile.findUniqueOrThrow({ where: { userId } })).profilePictureUrl, null);
+    const eligibility = new AiEligibilityService(prisma);
+    await assert.rejects(eligibility.require(userId));
+    await eligibility.confirm(userId, { country: 'CA', adult: true });
+    await eligibility.require(userId);
+    await prisma.userProfile.update({ where: { userId }, data: { age: 17 } });
+    await assert.rejects(eligibility.require(userId));
+    await prisma.userProfile.update({ where: { userId }, data: { age: null } });
+    for (const resolvedAt of [null, new Date(), new Date(Date.now() - 366 * 86400000)]) {
+      const request = await prisma.contactRequest.create({ data: { email, category: 'privacy', message: 'Disposable retention request', resolvedAt } });
+      contactIds.push(request.id);
+    }
     const feedback = await prisma.assistantFeedback.create({ data: { userId, question: 'fixture', answer: 'fixture', rating: 'UP', model: 'fixture', responseTimeMs: 0, inputTokens: 0, outputTokens: 0 } });
     const exported = await accounts.exportData(userId, { password: nextPassword, otp: enrolled.recoveryCodes[2] });
     assert.equal(exported.email, email);
     assert.equal(exported.assistantFeedback.length, 1);
+    assert.equal(exported.aiCountry, 'CA');
+    assert(exported.aiAdultConfirmedAt);
     for (const secret of ['passwordHash', 'mfaSecret', 'mfaRecoveryHashes', 'authSessions', 'accountTokens']) assert(!Object.hasOwn(exported, secret));
     await prisma.assistantFeedback.update({ where: { id: feedback.id }, data: { createdAt: new Date(Date.now() - 31 * 86400000) } });
     await new RetentionService(prisma).purgeExpired();
     assert.equal(await prisma.assistantFeedback.findUnique({ where: { id: feedback.id } }), null);
+    assert.equal(await prisma.contactRequest.count({ where: { id: { in: contactIds } } }), 2);
     await prisma.assistantFeedback.create({ data: { userId, question: 'fresh', answer: 'fixture', rating: 'UP', model: 'fixture', responseTimeMs: 0, inputTokens: 0, outputTokens: 0 } });
     await accounts.deleteAccount(userId, { password: nextPassword, otp: enrolled.recoveryCodes[3] });
     assert.equal(await prisma.user.count({ where: { id: userId } }), 0);
@@ -142,6 +167,7 @@ async function main() {
     userId = undefined;
     console.log('Database security integration checks passed.');
   } finally {
+    await prisma.contactRequest.deleteMany({ where: { id: { in: contactIds } } });
     if (unrelatedId) await prisma.user.delete({ where: { id: unrelatedId } });
     if (userId) {
       await prisma.portfolio.deleteMany({ where: { userId } });

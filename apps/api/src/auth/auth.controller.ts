@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { SecurityQuotaService } from './security-quota.service';
@@ -12,6 +12,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AuthenticatedUser, CurrentUser } from './current-user.decorator';
+import { AiEligibilityDto, AiEligibilityService } from './ai-eligibility.service';
 
 const SESSION_COOKIE = 'alpha_trade_session';
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -23,7 +24,22 @@ const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService, private readonly quota: SecurityQuotaService,
-    private readonly mfa: MfaService, private readonly accountTokens: AccountTokenService) {}
+    private readonly mfa: MfaService, private readonly accountTokens: AccountTokenService,
+    private readonly aiEligibility: AiEligibilityService) {}
+
+  @Get('ai-eligibility')
+  @UseGuards(JwtAuthGuard)
+  getAiEligibility(@CurrentUser() user: AuthenticatedUser) { return this.aiEligibility.get(user.userId); }
+
+  @Post('ai-eligibility')
+  @UseGuards(JwtAuthGuard)
+  async confirmAiEligibility(@CurrentUser() user: AuthenticatedUser, @Body() dto: AiEligibilityDto) {
+    await this.quota.consume('ai-eligibility-user', user.userId, 10, 900_000);
+    return this.aiEligibility.confirm(user.userId, dto);
+  }
+  @Delete('ai-eligibility')
+  @UseGuards(JwtAuthGuard)
+  withdrawAiEligibility(@CurrentUser() user: AuthenticatedUser) { return this.aiEligibility.withdraw(user.userId); }
 
   @Post('register')
   @Throttle(AUTH_THROTTLE)

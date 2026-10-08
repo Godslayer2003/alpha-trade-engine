@@ -7,6 +7,7 @@ import { AnalysisService } from '../analysis/analysis.service';
 import { AssistantService } from '../assistant/assistant.service';
 import { PaymentsService } from '../payments/payments.service';
 import { SecurityQuotaService } from '../auth/security-quota.service';
+import { AiEligibilityService } from '../auth/ai-eligibility.service';
 
 describe('Telegram account linking', () => {
   const upsert = jest.fn();
@@ -25,7 +26,7 @@ describe('Telegram account linking', () => {
     reply.mockResolvedValue(undefined);
     service = new TelegramService({ telegramLink: { upsert, updateMany, deleteMany } } as unknown as PrismaService,
       {} as PortfolioService, {} as AnalysisService, {} as AssistantService, {} as PaymentsService,
-      { consume } as unknown as SecurityQuotaService);
+      { consume } as unknown as SecurityQuotaService, {} as AiEligibilityService);
   });
   it('stores only a hash and ten-minute expiry and limits code issuance', async () => {
     const issued = await service.createLinkCode('user');

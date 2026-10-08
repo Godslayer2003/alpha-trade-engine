@@ -19,7 +19,7 @@ inputs and security review. Neither supplies Canadian legal guidance.
 | Ownership and authentication | Database-backed sessions, MFA, record ownership checks; Telegram now rejects group account commands and notifications. |
 | Rate limits and input validation | Persistent API/account quotas; Telegram link issuance/redemption limits, bounded code format and existing AI limits. |
 | Credential protection | Telegram link codes stored as hashes, ten-minute expiry and atomic single-use redemption; user-owned disconnect removes the link. |
-| Maintained dependencies | Production audit clean at the prior release; five development braces-chain findings remain unresolved. Recheck in CI. |
+| Maintained dependencies | Tailwind 4/PostCSS migration removes the unpatched braces chain. Current full audit has zero findings; CI now checks development and production dependencies. |
 | Provider spending and audits | Exact provider associations/free-tier state verified earlier; no monetary caps configured; Strix coverage remains incomplete. |
 
 Privacy copy identifies Neon, outside-Canada processing risk and Gemini's unpaid
@@ -57,17 +57,22 @@ unverified exemption from securities regulation. Statutory rights are preserved.
 
 ## Unresolved operator and legal decisions
 
-1. Supply an authorized public operator/business identity and dedicated privacy
-   and support contact. Never substitute the private administrator email. BC
-   accountability/contact requirements and requests outside self-service controls
-   remain unresolved until these details and a responsible privacy person are set.
-2. Confirm served countries and audience ages. Review provider audience/region
-   restrictions and the collection/consent needed to enforce them. Do not describe
-   unrestricted public Gemini access as provider-term compliance.
+1. The public privacy/support form now reaches an MFA-protected private inbox.
+   The confirmed site operator handles privacy requests; private admin email is
+   not exposed. Monitor the inbox and handle requests under applicable deadlines.
+   An authorized seller/legal name and business address still cannot be inferred.
+2. AI currently requires an authenticated adult/Canada declaration, with known
+   minors denied across web chat, reports and Telegram. The declaration can be
+   withdrawn, is exported and is removed on account deletion. It is not verified
+   geolocation or age verification. Assess any expanded audience before enabling
+   other countries; public market/practice access is separate from AI access.
 3. Obtain an assessment of securities registration/exemptions for the actual paid
    guidance and recommendations. Avoid claims of licensed advice, guaranteed
    performance or established exemption without evidence.
-4. Finalize seller information, supply dates, payment access duration, support,
+4. New production purchases are gated on Stripe, COMMERCE_ENABLED and authorized
+   PUBLIC_SELLER_NAME/PUBLIC_SELLER_ADDRESS. Existing entitlements are preserved.
+   Do not enable the gate merely because those strings are present. Finalize seller
+   information, supply dates, payment access duration, support,
    refund/cancellation handling and a deliverable contract copy under applicable
    consumer rules. No blanket non-refund statement overrides statutory rights.
 5. Review provider contracts, processing regions, logs, backups, deletion timelines,
@@ -77,10 +82,37 @@ unverified exemption from securities regulation. Statutory rights are preserved.
    individual: BC PIPA section 35 may require at least one year. Current feedback
    cleanup is thirty days; do not repurpose it as an access/adverse-decision record
    without changing retention and disclosures after review.
-7. Finish broader security coverage and resolve remaining development advisories.
-   AI generation and a real paid checkout still lack full live acceptance evidence.
+7. Full dependency audit is now clean. Targeted security regression and source
+   review cover the new routes; the local Strix scan uses a disposable tracked-source
+   snapshot, no production credentials/calls. Record its actual final coverage and
+   any blocked branches rather than treating zero findings as certification.
+   Real paid checkout remains unavailable without authorized Stripe/seller setup.
+
+## Provider and retention assessment
+
+| Processing | Verified implementation/account evidence | Contract or retention boundary |
+| --- | --- | --- |
+| API and analysis hosting | Render API reports Oregon, USA, Free service compute. No customer DB in analysis service. | [Render regions](https://render.com/docs/regions); [log retention](https://render.com/docs/logging) depends on workspace plan, not just compute. No paid upgrade or log export was enabled. |
+| Customer database | Restricted production connection identifies AWS us-east-2 (Ohio, USA). Previous free recovery snapshot was retained before credential transition. | [Neon DPA](https://neon.com/pdf/DPA.pdf); [restore-history guidance](https://neon.com/blog/practical-guide-to-database-branching). Exact configured recovery history and contractual acceptance require provider-console evidence; no guarantee of immediate backup erasure. |
+| Web hosting | Vercel serves the public alias and proxies authenticated API requests. Provider credentials remain server-only. | [Runtime log retention](https://vercel.com/docs/logs/runtime) depends on team plan/add-ons. No claim that CDN/request metadata stays in Canada. |
+| AI providers | Unpaid Gemini association and zero OpenAI credits verified earlier; bounded account/global quotas remain. Messages are not persisted except optional feedback. | Gemini/OpenAI sources above. No paid billing activation, credit purchase or asserted monetary cap. Personal/confidential information is prohibited in Gemini prompts. |
+| Feedback/contact requests | Feedback is optional evaluation material, purged after 30 days. Open contact requests are preserved; resolved requests purged after one year. | Do not use short-lived feedback as an adverse-decision record. Preserve any separately required incident/legal record outside normal cleanup. |
+| Market sources | Fixed Yahoo Finance/Binance hosts, bounded symbols, no provider credentials in client code. | [Yahoo terms](https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html) restrict automated collection without permission; [developer guidelines](https://legal.yahoo.com/us/en/yahoo/guidelines/ydn/index.html) vary by API. Current endpoint availability is not a redistribution licence. Obtain permission or a licensed source before commercial launch. Binance's applicable use/redistribution rights also require confirmation. |
+
+OpenAI response handling now reads the actual REST output blocks; Gemini requests
+have a timeout. Email error responses are rejected instead of counted as delivery;
+notification errors/logs no longer repeat raw provider diagnostics or account IDs.
+These changes do not establish provider contractual acceptance or financial licensing.
 
 ## Incident response
+
+The stopped source-only Strix run is not a completed penetration test. Its
+notification/email error candidates are addressed by sanitized delivery failures
+and provider-error checks. Telegram command diagnostics are also sanitized;
+unfinished MFA enrollment is cleared on password change/recovery, with snapshot
+conditions and regression coverage. Dependency assessment uses npm audit because
+the scanner had no offline advisory database. Partial Semgrep parsing and actual
+provider transport behavior remain limits; no clean-scan guarantee is made.
 
 The operator coordinates response. Contain the affected route/service, revoke
 compromised access and preserve minimally necessary evidence in restricted storage

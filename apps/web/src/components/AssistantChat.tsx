@@ -8,6 +8,7 @@ import {
   chatWithAssistant,
   createCheckoutSession,
   fetchPaymentStatus,
+  fetchAiEligibility,
   submitAssistantFeedback,
   verifyCheckoutSession,
   ASSISTANT_MODELS,
@@ -31,7 +32,7 @@ interface DisplayMessage extends ChatMessage {
 }
 
 export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatProps) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -45,32 +46,44 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
   // gate below only ever checks it when `token` is present).
   const [paid, setPaid] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [checkoutAvailable, setCheckoutAvailable] = useState(false);
+  const [seller, setSeller] = useState<{ name: string; address: string } | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [eligible, setEligible] = useState<boolean | null>(null);
+  useEffect(() => {
+    setEligible(null);
+    if (!token) return;
+    let active = true;
+    fetchAiEligibility(token).then(result => { if(active) setEligible(result.eligible); }).catch(() => { if(active) setEligible(false); });
+    return () => { active = false; };
+  }, [token, user?.id]);
 
   useEffect(() => {
+    let active = true;
+    setPaid(null); setIsAdmin(false); setCheckoutAvailable(false); setSeller(null);
     if (!token) return;
     const sessionId = new URLSearchParams(window.location.search).get('stripe_session_id');
-    if (sessionId) {
-      // Returning from Stripe Checkout — confirm the payment actually went
-      // through before unlocking, then drop the query param from the URL.
-      verifyCheckoutSession(token, sessionId)
-        .then((res) => setPaid(res.paid))
-        .catch(() => setPaid(false))
-        .finally(() => {
+    async function loadStatus() {
+      if (sessionId) {
+        try { await verifyCheckoutSession(token!, sessionId); } catch { /* Stored status below remains authoritative. */ }
+        if (active) {
           const url = new URL(window.location.href);
           url.searchParams.delete('stripe_session_id');
           window.history.replaceState({}, '', url.toString());
-        });
-      return;
+        }
+      }
+      try {
+        const result = await fetchPaymentStatus(token!);
+        if (active) {
+          setPaid(result.paid); setIsAdmin(result.admin);
+          setCheckoutAvailable(result.checkoutAvailable === true); setSeller(result.seller ?? null);
+        }
+      } catch { if (active) setPaid(false); }
     }
-    fetchPaymentStatus(token)
-      .then((res) => {
-        setPaid(res.paid);
-        setIsAdmin(res.admin);
-      })
-      .catch(() => setPaid(false));
-  }, [token]);
+    void loadStatus();
+    return () => { active = false; };
+  }, [token, user?.id]);
 
   async function unlock() {
     if (!token || unlocking) return;
@@ -202,18 +215,22 @@ export function AssistantChat({ symbol, assetClass, timeframe }: AssistantChatPr
         <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">Log in to use the AI Guide chat.</p>
         </div>
+      ) : eligible !== true ? (
+        <div className="p-4 text-sm"><p>AI features are currently limited to adults aged 18 or older in Canada.</p><Link href="/ai-access" className="underline">Confirm AI eligibility</Link></div>
       ) : paid === false ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">
             Unlock the AI Guide chat with a one-time US$5 payment.
           </p>
+          {seller && <p className="text-xs break-words">Seller: {seller.name}<br />{seller.address}</p>}
           <button
             onClick={unlock}
-            disabled={unlocking}
+            disabled={unlocking || !checkoutAvailable}
             className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white"
           >
             {unlocking ? 'Redirecting…' : 'Unlock AI Guide — US$5'}
           </button>
+          {!checkoutAvailable && <p className="text-xs">New purchases are currently unavailable. <Link href="/contact" className="underline">Contact support</Link>.</p>}
           <p className="text-[10px] text-slate-500">One-time payment; no automatic renewal. Refund policy and statutory rights: <Link href="/disclaimer" className="underline">Terms</Link>.</p>
           {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
         </div>

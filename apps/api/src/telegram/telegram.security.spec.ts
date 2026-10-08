@@ -6,12 +6,14 @@ import { AnalysisService } from '../analysis/analysis.service';
 import { AssistantService } from '../assistant/assistant.service';
 import { PaymentsService } from '../payments/payments.service';
 import { SecurityQuotaService } from '../auth/security-quota.service';
+import { AiEligibilityService } from '../auth/ai-eligibility.service';
 
 describe('Telegram AI spending boundaries', () => {
   const findUnique = jest.fn();
   const getStatus = jest.fn();
   const chat = jest.fn();
   const consume = jest.fn();
+  const requireEligibility = jest.fn();
   const reply = jest.fn();
   const ctx = { chat: { id: 123, type: 'private' }, message: { text: '/ask Explain risk' }, reply };
   let ask: (context: typeof ctx) => Promise<void>;
@@ -21,6 +23,7 @@ describe('Telegram AI spending boundaries', () => {
     getStatus.mockResolvedValue({ paid: true });
     chat.mockResolvedValue({ reply: 'Answer' });
     consume.mockReset().mockResolvedValue(undefined);
+    requireEligibility.mockReset().mockResolvedValue(undefined);
     reply.mockResolvedValue(undefined);
     ctx.message.text = '/ask Explain risk';
     ctx.chat.type = 'private';
@@ -29,6 +32,7 @@ describe('Telegram AI spending boundaries', () => {
       {} as PortfolioService, {} as AnalysisService,
       { chat } as unknown as AssistantService, { getStatus } as unknown as PaymentsService,
       { consume } as unknown as SecurityQuotaService,
+      { require: requireEligibility } as unknown as AiEligibilityService,
     );
     service['registerHandlers']({ start: jest.fn(),
       command: (name: string, handler: typeof ask) => { if (name === 'ask') ask = handler; },
@@ -48,7 +52,7 @@ describe('Telegram AI spending boundaries', () => {
     consume.mockRejectedValueOnce(new Error('Request limit reached'));
     await ask(ctx);
     expect(chat).not.toHaveBeenCalled();
-    expect(reply).toHaveBeenCalledWith(expect.stringContaining('Request limit reached'));
+    expect(reply).toHaveBeenCalledWith('Could not reach the AI guide. Check eligibility and access in the app, or try again later.');
   });
   it('does not call AI for an unlinked chat', async () => {
     findUnique.mockResolvedValue(null);
@@ -69,11 +73,25 @@ describe('Telegram AI spending boundaries', () => {
     expect(consume).not.toHaveBeenCalled();
     expect(chat).not.toHaveBeenCalled();
   });
+  it('rejects missing age/country confirmation before payment, quotas or AI', async () => {
+    requireEligibility.mockRejectedValue(new Error('Confirm AI eligibility'));
+    await ask(ctx);
+    expect(requireEligibility).toHaveBeenCalledWith('linked-user');
+    expect(getStatus).not.toHaveBeenCalled();
+    expect(consume).not.toHaveBeenCalled();
+    expect(chat).not.toHaveBeenCalled();
+  });
   it('rejects oversized questions before account/provider work', async () => {
     ctx.message.text = '/ask ' + 'a'.repeat(4_001);
     await ask(ctx);
     expect(findUnique).not.toHaveBeenCalled();
     expect(chat).not.toHaveBeenCalled();
     expect(reply).toHaveBeenCalledWith(expect.stringContaining('4,000'));
+  });
+  it('does not repeat private provider diagnostics in a command reply', async () => {
+    chat.mockRejectedValueOnce(new Error('synthetic-private-provider-token'));
+    await ask(ctx);
+    expect(reply).toHaveBeenCalledWith('Could not reach the AI guide. Check eligibility and access in the app, or try again later.');
+    expect(JSON.stringify(reply.mock.calls)).not.toContain('synthetic-private-provider-token');
   });
 });

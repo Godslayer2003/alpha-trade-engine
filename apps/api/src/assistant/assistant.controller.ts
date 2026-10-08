@@ -10,6 +10,7 @@ import { UpdateConfigDto } from './dto/update-config.dto';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { SecurityQuotaService } from '../auth/security-quota.service';
 import { crisisResponse } from './safety';
+import { AiEligibilityService } from '../auth/ai-eligibility.service';
 
 @Controller('api/v1/assistant')
 export class AssistantController {
@@ -17,6 +18,7 @@ export class AssistantController {
     private readonly assistantService: AssistantService,
     private readonly paymentsService: PaymentsService,
     private readonly quota: SecurityQuotaService,
+    private readonly eligibility: AiEligibilityService,
   ) {}
 
   // Login is required so the $5 paywall below actually means something —
@@ -30,6 +32,7 @@ export class AssistantController {
     const last = dto.messages[dto.messages.length - 1];
     const crisis = last.role === 'user' ? crisisResponse(last.content) : null;
     if (crisis) return crisis;
+    await this.eligibility.require(user.userId);
     const { paid } = await this.paymentsService.getStatus(user.userId);
     if (!paid) {
       throw new ForbiddenException('AI Guide chat access requires a one-time $5 payment.');

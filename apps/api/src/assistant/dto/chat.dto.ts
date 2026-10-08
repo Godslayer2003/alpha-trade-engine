@@ -4,12 +4,17 @@ import {
   ArrayMaxSize,
   IsArray,
   IsIn,
-  IsObject,
   IsOptional,
   IsString,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+
+export class ChatContextDto {
+  @IsOptional() @IsString() @MaxLength(64) symbol?: string;
+  @IsOptional() @IsIn(['EQUITY', 'CRYPTO', 'COMMODITY']) assetClass?: string;
+  @IsOptional() @IsString() @MaxLength(10) timeframe?: string;
+}
 
 export class ChatMessageDto {
   @IsIn(['user', 'assistant'])
@@ -29,8 +34,9 @@ export class ChatRequestDto {
   messages!: ChatMessageDto[];
 
   @IsOptional()
-  @IsObject()
-  context?: Record<string, unknown>;
+  @ValidateNested()
+  @Type(() => ChatContextDto)
+  context?: ChatContextDto;
 
   @IsOptional()
   @IsIn(['gemini', 'openai'])

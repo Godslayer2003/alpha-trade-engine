@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div id="page-content" tabIndex={-1}>{children}</div>
             <footer className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-6 text-sm dark:border-slate-800">
               <span>© {new Date().getUTCFullYear()} Alpha-Trade Engine</span>
-              <nav aria-label="Legal information" className="flex gap-5"><Link href="/privacy" className="underline">Privacy</Link><Link href="/disclaimer" className="underline">Terms and risk disclosure</Link></nav>
+              <nav aria-label="Legal information" className="flex flex-wrap gap-5"><Link href="/privacy" className="underline">Privacy</Link><Link href="/disclaimer" className="underline">Terms and risk disclosure</Link><Link href="/contact" className="underline">Privacy and support</Link></nav>
             </footer>
           </AuthProvider>
         </ThemeProvider>

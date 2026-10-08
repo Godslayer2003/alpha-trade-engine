@@ -39,7 +39,7 @@ export class MfaService {
     if (!await bcrypt.compare(password, user.passwordHash)) throw new UnauthorizedException('Password is incorrect.');
     if (user.mfaEnabled) throw new BadRequestException('MFA is already enabled.');
     const secret = this.otp().generateSecret();
-    const updated = await this.prisma.user.updateMany({ where: { id: userId, mfaEnabled: false },
+    const updated = await this.prisma.user.updateMany({ where: { id: userId, passwordHash: user.passwordHash, mfaEnabled: false },
       data: { mfaSecret: this.encrypt(secret), mfaLastStep: -1 } });
     if (updated.count !== 1) throw new BadRequestException('MFA is already enabled.');
     return { secret, uri: this.otp().generateURI({ issuer: 'Alpha Trade', label: user.email, secret }) };
@@ -51,7 +51,7 @@ export class MfaService {
     await this.verify(userId, user.mfaSecret, token, false);
     const recoveryCodes = Array.from({ length: 10 }, () => randomBytes(16).toString('hex'));
     await this.prisma.$transaction(async tx => {
-      const updated = await tx.user.updateMany({ where: { id: userId, mfaEnabled: false, mfaSecret: user.mfaSecret }, data: {
+      const updated = await tx.user.updateMany({ where: { id: userId, passwordHash: user.passwordHash, mfaEnabled: false, mfaSecret: user.mfaSecret }, data: {
         mfaEnabled: true, mfaRecoveryHashes: recoveryCodes.map(code => this.hashRecovery(code)),
       } });
       if (updated.count !== 1) throw new BadRequestException('Enrollment changed. Start again.');

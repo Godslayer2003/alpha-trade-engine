@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AssetClass } from '@alpha-trade/shared-types';
 import { fetchCandles, fetchReport, fetchWithWakeupRetry, type AiReport } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -85,8 +86,8 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
         setReport(reportResult);
         if (!reportResult) setError('Log in to load the AI news explanation.');
       })
-      .catch(() => {
-        if (!cancelled) setError(`Could not load recent news for ${activeSymbol}.`);
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : `Could not load recent news for ${activeSymbol}.`);
       })
       .finally(() => {
         if (!cancelled) {
@@ -154,7 +155,7 @@ export function TradeNewsWidget({ symbol, assetClass }: TradeNewsWidgetProps) {
           Waking up the server — this can take up to a minute after a while of no visitors…
         </p>
       )}
-      {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{error} {error.includes('/ai-access') && <Link href="/ai-access" className="underline">Confirm AI eligibility</Link>}</p>}
 
       {report && (
         <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-2 bg-slate-50 dark:bg-slate-950/40">

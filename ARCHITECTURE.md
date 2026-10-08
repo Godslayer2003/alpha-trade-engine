@@ -47,9 +47,36 @@ legacy outstanding tokens; existing private links remain usable and group links
 must be replaced. AI Guide sends user messages and selected research context;
 it no longer automatically attaches account identity or portfolio balances.
 
-The application supports simulated trading. Market quotes are delayed source closes, not guaranteed executable prices. The current payment flow is a one-time payment; do not invent subscriptions or renewal disclosures. Keep privacy statements consistent with actual processing and retention. No public privacy contact has been authorized; do not publish the administrator's email.
+The application supports simulated trading. Market quotes are delayed source closes, not guaranteed executable prices. The payment flow is one-time; do not invent subscriptions or renewal disclosures. New production checkout requires Stripe, COMMERCE_ENABLED=true and authorized PUBLIC_SELLER_NAME/PUBLIC_SELLER_ADDRESS. Keep checkout paused until seller disclosures, contract delivery and cancellation handling are reviewed. Existing account entitlements remain usable without Stripe configuration. The public privacy/support form reaches a private MFA-protected operator inbox; never publish the administrator's email.
+
+AI access currently uses a conservative Canada/adults-only policy. Authenticated
+accounts record a country declaration and adult-confirmation timestamp; web chat,
+reports and Telegram check them before provider work. A known profile age below
+18 blocks access. This is self-declaration, not verified age/geolocation. Users can
+withdraw the declaration; export includes it and account deletion removes it.
+Server chat context allows only bounded symbol, asset class and timeframe fields.
+OpenAI REST responses are read from message output blocks, response storage is off,
+and provider requests have timeouts. No provider monetary-cap guarantee is made.
+
+Contact requests store only reply email, category, message and timestamps in Neon.
+Public submission is bounded by durable per-IP and global quotas; only current
+ADMIN sessions verified with MFA can list or resolve requests. No request content
+is emailed automatically. The operator must respond through an authorized channel
+before resolving. Open requests are preserved; resolved requests are purged after
+one year, separately from account deletion. Incident records use the separate
+restricted process described in CANADA_LEGAL_SECURITY_REVIEW.md.
 
 ## Product structure
+
+When checkout is configured, authenticated payment status supplies the authorized
+public seller name/address for display beside the price and Terms before checkout.
+Payment returns refresh stored entitlement and checkout availability. Report
+eligibility errors link to the declaration, whose page loads the saved state.
+
+Password changes and recovery clear unfinished MFA enrollment while preserving
+enabled factors. Enrollment writes compare the password snapshot to reject
+concurrent password changes. Telegram command failures return fixed messages
+instead of database or provider diagnostics.
 
 The root layout owns the shared navigation, sign-in controls and footer. Each page owns one content heading. The market workspace has Research, Practice and Performance views. Reuse shared spacing, panels, controls and focus styles in globals.css. Preserve keyboard access, clear loading/error/success states and usable mobile layouts.
 

@@ -8,6 +8,7 @@ import { AnalysisService } from '../analysis/analysis.service';
 import { AssistantService } from '../assistant/assistant.service';
 import { PaymentsService } from '../payments/payments.service';
 import { SecurityQuotaService } from '../auth/security-quota.service';
+import { AiEligibilityService } from '../auth/ai-eligibility.service';
 
 const currency = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 
@@ -26,6 +27,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     private readonly assistantService: AssistantService,
     private readonly paymentsService: PaymentsService,
     private readonly quota: SecurityQuotaService,
+    private readonly eligibility: AiEligibilityService,
   ) {}
 
   private token: string | null = null;
@@ -198,7 +200,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         }
         await ctx.reply(lines.join('\n'));
       } catch (err) {
-        await ctx.reply(`Could not load portfolio: ${(err as Error).message}`);
+        await ctx.reply('Could not load portfolio. Try again later.');
       }
     });
 
@@ -222,7 +224,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
             `\nConfidence ${Math.round(signal.confidence * 100)}%\n\n${signal.disclaimer}`,
         );
       } catch (err) {
-        await ctx.reply(`Could not get a signal: ${(err as Error).message}`);
+        await ctx.reply('Could not get a signal. Try again later.');
       }
     });
 
@@ -239,6 +241,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       try {
         const userId = await this.requireLinkedUser(ctx);
         if (!userId) return;
+        await this.eligibility.require(userId);
         const { paid } = await this.paymentsService.getStatus(userId);
         if (!paid) {
           await ctx.reply('AI Guide access is not unlocked for this account. Complete checkout in the dashboard first.');
@@ -249,7 +252,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         const result = await this.assistantService.chat([{ role: 'user', content: question }]);
         await ctx.reply(result.reply);
       } catch (err) {
-        await ctx.reply(`Could not reach the AI guide: ${(err as Error).message}`);
+        await ctx.reply('Could not reach the AI guide. Check eligibility and access in the app, or try again later.');
       }
     });
   }

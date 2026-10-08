@@ -14,6 +14,7 @@ export class RetentionService {
       this.prisma.accountToken.deleteMany({ where: { expiresAt: { lt: expired } } }),
       this.prisma.securityQuota.deleteMany({ where: { expiresAt: { lt: expired } } }),
       this.prisma.assistantFeedback.deleteMany({ where: { createdAt: { lt: feedback } } }),
+      this.prisma.contactRequest.deleteMany({ where: { resolvedAt: { lt: new Date(Date.now() - 365 * 86_400_000) } } }),
     ]);
   }
 }

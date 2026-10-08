@@ -23,6 +23,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
 import { PaymentsModule } from './payments/payments.module';
 import { HealthController } from './health.controller';
 import { AiEngineModule } from './ai-engine/ai-engine.module';
+import { ContactModule } from './contact/contact.controller';
 
 @Module({
   controllers: [HealthController],
@@ -52,6 +53,7 @@ import { AiEngineModule } from './ai-engine/ai-engine.module';
     NotificationsModule,
     WorkflowsModule,
     PaymentsModule,
+    ContactModule,
   ],
   providers: [
     {
